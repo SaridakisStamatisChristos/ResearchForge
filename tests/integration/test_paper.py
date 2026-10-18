@@ -207,7 +207,7 @@ def test_source_specific_bibliography_is_only_observed_metadata(tmp_path: Path) 
     rendered = render_markdown(doc)
     assert "&lt;unsafe&gt;" in rendered
     assert r"\*" in rendered
-    assert "BIBLIOGRAPHIC_OBSERVATION_ONLY" in rendered
+    assert r"BIBLIOGRAPHIC\_OBSERVATION\_ONLY" in rendered
     (store / f"{sid}.json").write_bytes(b"corrupt")
     tampered = build_paper(spec, literature_store=store)
     assert tampered["bibliography"] == []
