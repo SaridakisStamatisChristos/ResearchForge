@@ -46,9 +46,7 @@ def _check_name(name: str) -> None:
 def _bundled_content(name: str = NAME) -> bytes:
     _check_name(name)
     return (
-        resources.files("researchforge")
-        .joinpath("portable_skills", name, "SKILL.md")
-        .read_bytes()
+        resources.files("researchforge").joinpath("portable_skills", name, "SKILL.md").read_bytes()
     )
 
 

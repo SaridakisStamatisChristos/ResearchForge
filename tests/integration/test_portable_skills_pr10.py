@@ -36,22 +36,19 @@ def test_explicit_exports_keep_existing_user_resources(tmp_path: Path) -> None:
     precious.write_bytes(b"do not touch\n")
     runner = CliRunner()
     for name in SUPPORTED_NAMES:
-        result = runner.invoke(
-            app, ["skill", "export", "--name", name, "--target", str(target)]
-        )
+        result = runner.invoke(app, ["skill", "export", "--name", name, "--target", str(target)])
         assert result.exit_code == 0, result.output
     assert precious.read_bytes() == b"do not touch\n"
-    assert runner.invoke(
-        app, ["skill", "export", "--name", NAME, "--target", str(target)]
-    ).exit_code == 3
+    assert (
+        runner.invoke(app, ["skill", "export", "--name", NAME, "--target", str(target)]).exit_code
+        == 3
+    )
 
 
 def test_unknown_and_symlink_escape(tmp_path: Path) -> None:
     with pytest.raises(PortableSkillError, match="Unknown"):
         validate_skill(name="not-a-skill")
-    assert CliRunner().invoke(
-        app, ["skill", "validate", "--name", "not-a-skill"]
-    ).exit_code == 2
+    assert CliRunner().invoke(app, ["skill", "validate", "--name", "not-a-skill"]).exit_code == 2
     real = tmp_path / "real"
     real.mkdir()
     symlink = tmp_path / "alias"

@@ -46,8 +46,10 @@ from researchforge.literature_archive import (
 )
 from researchforge.portable_skills import (
     NAME as PORTABLE_SKILL_NAME,
-    PortableSkillError,
+)
+from researchforge.portable_skills import (
     SUPPORTED_NAMES,
+    PortableSkillError,
     export_skill,
     validate_skill,
 )
