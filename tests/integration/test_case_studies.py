@@ -80,18 +80,12 @@ def test_actual_subprocess_raw_logs_two_independent_domains(tmp_path: Path) -> N
         assert replay["paired_discordance"] == {"left_only": 1, "right_only": 0}
         assert replay["paired_solved_bootstrap"]["observation_count"] == 3
         assert replay["bundle_sha256"] == result["domains"][kind]["raw_bundle_sha256"]
-        assert any(
-            r["right"]["status"] == "WRONG_ANSWER" for r in replay["cases"]
-        )
-        assert all(
-            r["left"]["status"].startswith("VERIFIED") for r in replay["cases"]
-        )
+        assert any(r["right"]["status"] == "WRONG_ANSWER" for r in replay["cases"])
+        assert all(r["left"]["status"].startswith("VERIFIED") for r in replay["cases"])
         assert replay["source"] == "OFFLINE_REPLAY_OF_TRUSTED_LOCAL_RECEIPT"
         assert "not independently clock-verified" in replay["limitations"][0]
         assert len(list((root / "raw-bundle" / "logs").rglob("*.stdout"))) == 6
-        cli = CliRunner().invoke(
-            app, ["cases", "verify", "--bundle", str(root / "raw-bundle")]
-        )
+        cli = CliRunner().invoke(app, ["cases", "verify", "--bundle", str(root / "raw-bundle")])
         assert cli.exit_code == 0, cli.output
         assert json.loads(cli.output)["bundle_sha256"] == replay["bundle_sha256"]
 
