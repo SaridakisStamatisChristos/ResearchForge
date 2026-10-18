@@ -54,7 +54,9 @@ def schema(
         "manifest-lock": FrozenManifest,
     }
     if name not in models:
-        raise typer.BadParameter("choose campaign, evaluator-result, evidence-event, or manifest-lock")
+        raise typer.BadParameter(
+            "choose campaign, evaluator-result, evidence-event, or manifest-lock"
+        )
     typer.echo(json.dumps(models[name].model_json_schema(), indent=2, sort_keys=True))
 
 
