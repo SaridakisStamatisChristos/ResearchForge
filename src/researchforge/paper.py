@@ -138,7 +138,10 @@ def _measured_table(
         }
     baseline = arms["baseline"]
     candidate = arms[plan["candidate_id"]]
-    if baseline["unit"] != candidate["unit"] or baseline["sample_count"] != candidate["sample_count"]:
+    if (
+        baseline["unit"] != candidate["unit"]
+        or baseline["sample_count"] != candidate["sample_count"]
+    ):
         raise PaperIntegrityError("Final arms have noncomparable units or sample counts")
     measured = (
         baseline["metric_value"] - candidate["metric_value"]
@@ -180,10 +183,14 @@ def _bibliography(
         try:
             snapshot = read_snapshot(store, archive_id)
         except LiteratureArchiveError as exc:
-            raise PaperIntegrityError("Observed bibliography evidence changed during export") from exc
+            raise PaperIntegrityError(
+                "Observed bibliography evidence changed during export"
+            ) from exc
         for batch in snapshot["batches"]:
             for item in batch["items"]:
-                if item["doi"] != doi or (subject_id is not None and item["provider_id"] != subject_id):
+                if item["doi"] != doi or (
+                    subject_id is not None and item["provider_id"] != subject_id
+                ):
                     continue
                 rows.append(
                     {
@@ -281,7 +288,7 @@ def build_paper(
         "audit_counts": audit["counts"],
         "limitations": [
             "Automated export is not peer review or evidence of novelty or publication readiness",
-            "Submitted title, authors and claim wording are human-provided, not semantically verified",
+            "Submitted title, authors and claim wording are not semantically verified",
             "VERIFIED denotes a mechanical frozen-final predicate, not population superiority",
             "OBSERVED qualification is exploratory selection, not independent final evidence",
             "OBSERVED literature entries are source metadata, not verified scientific conclusions",
