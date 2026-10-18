@@ -80,3 +80,24 @@ incomplete, return `FINAL_UNKNOWN` with no automatic second attempt.
 a declared metric direction and a frozen random seed. It yields a seeded paired
 percentile-bootstrap interval, clearly marked exploratory. The v1 aggregate-only
 final evaluator has no case-level samples and therefore no manufactured CI.
+
+## PR08 LiteratureForge v0.1
+
+`LiteratureRecord` stores each provider's distinct stable ID, normalized DOI
+when syntactically valid, source title/authors/year, raw source item and its
+canonical SHA-256. `RetrievalBatch` stores full request provenance, all
+`RetrievalPage` hashes and statuses, provider's reported count, retrieved
+count, next cursor and explicit completeness. Each provider has typed
+`lookup_identifier` and `search` methods.
+
+Provider records are not evidence of scientific accuracy. DOI equality is the
+sole automatic identity grouping rule; title matching is not a silent merge.
+Source lookup 404 is represented as source-specific `NOT_FOUND`.
+`COMPLETE` means requested pagination was exhausted; `PARTIAL` means a
+limit or failure truncated retrieval; `UNKNOWN` means initial retrieval
+failed or provider payload was unusable. The snapshot archive verifies its
+canonical digest and every raw-item digest during offline replay.
+
+Provider endpoints are fixed and requests cannot redirect to user-entered
+URLs. Search requires explicit `--allow-network`. Optional `httpx` dependency
+is installed with `.[literature]`; no existing campaign state is modified.

@@ -35,3 +35,17 @@ start invalidates the one-shot evaluation rather than authorizing a silent rerun
 The scalar final threshold cannot establish generalization or statistical
 significance; bootstrap routines require authentic, correctly paired case-level
 observations and honest sampling-unit assumptions.
+
+## PR08 scholarly-provider boundary
+
+Remote publication titles, abstracts, authors, DOI text and provider metadata
+are **untrusted external content**, not commands, facts proven by the source,
+or authority to execute code. Live retrieval requires explicit user opt-in
+`--allow-network` and only queries fixed HTTPS provider hosts. Redirects,
+proxy environment inheritance and caller-specified HTTP headers/keys are
+disabled for the built-in client. Retry and pagination bounds reduce runaway
+retrieval; large bodies are rejected after reading and may still briefly use
+memory before validation. Archive IDs are content hashes with path-safe fixed
+length, and local report generation never contacts providers. Provider search
+queries and public URLs may include the user's research topic; do not place
+secrets in search strings. No Google Scholar scraping or inference is included.

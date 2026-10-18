@@ -191,3 +191,43 @@ Never use the trusted-local runner on adversarial code. Final comparisons are
 aggregate, single-fixture observations—not generalizable significance tests.
 
 See [MVP acceptance evidence](docs/MVP_ACCEPTANCE.md) for invariant and test coverage.
+
+## PR08 — LiteratureForge v0.1
+
+LiteratureForge is an **independent scholarly metadata retrieval module**. It uses
+Crossref DOI lookups and work searches and OpenAlex DOI lookups and work/author
+searches, with explicit live network consent:
+
+```bash
+python -m pip install -e '.[literature]'
+rf literature lookup --doi 10.1038/nphys1170 --sources crossref,openalex --json --allow-network --store /tmp/rf-literature
+rf literature search --query "dynamic shortest paths" --sources openalex --limit 20 --allow-network --json --store /tmp/rf-literature
+rf literature search --query "Alan Turing" --sources openalex --kind authors --limit 10 --allow-network
+rf literature report --search-id HASH_FROM_LOOKUP --store /tmp/rf-literature --format md
+```
+
+**No network requests occur without `--allow-network`.** Existing experiment,
+qualification and sealed final pipelines remain offline and unchanged. The
+`[literature]` extra is optional and core installation remains API-key free.
+CI uses `httpx.MockTransport` and has **no live provider tests**.
+
+Retrievals record provider, endpoint and parameters, access timestamp,
+individual response SHA-256s, result counts, next cursor, HTTP status, retry
+count, Retry-After, failure reason and `COMPLETE`/`PARTIAL`/`UNKNOWN`
+status. Searches are bounded to 100 records and 5 pages per provider. DOI
+normalization groups matching validated identifiers, but each source's title,
+author sequence, date, counts, provider ID and raw item hash remain distinct.
+Title similarity never silently merges different records.
+
+Use `--store` to create an immutable, SHA-256-addressed local report snapshot.
+An offline `rf literature report` validates snapshot and raw-item hashes
+without making requests. A 404 is only **NOT_FOUND in that source at the time
+observed**; it is not evidence of absence from other scholarly indexes or Google
+Scholar. A successful metadata lookup does not verify a paper's claims,
+novelty, peer review or academic correctness.
+
+Bounded retries cover 429/5xx and timeouts. A failed page after earlier
+success retains prior observations as `PARTIAL`; failure without observations
+is `UNKNOWN`. Incomplete retrievals use process exit code 5 and never
+pretend to be complete. Network errors/quotas can still occur on real providers,
+and their results have not been empirically checked in CI.
