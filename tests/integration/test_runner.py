@@ -40,9 +40,7 @@ def campaign(tmp_path: Path) -> tuple[RunnerService, Path, Path]:
     source.mkdir()
     (source / "splits").mkdir()
     for role, ident in (("dev", "d"), ("qualification", "q"), ("final", "f")):
-        (source / "splits" / f"{role}.json").write_text(
-            json.dumps({"cases": [{"id": ident}]})
-        )
+        (source / "splits" / f"{role}.json").write_text(json.dumps({"cases": [{"id": ident}]}))
     (source / "evaluator.py").write_text(
         "import json,sys,hashlib,pathlib\n"
         "d=pathlib.Path(sys.argv[2]).read_bytes()\n"
@@ -135,9 +133,9 @@ def test_interrupted_attempt_unknown(campaign: tuple[RunnerService, Path, Path])
     assert terminal(runner)[0] == "ATTEMPT_UNKNOWN"
 
 
-@pytest.mark.parametrize("issue,expected", [
-    ("TIMEOUT", "TIMED_OUT"), ("UNKNOWN", "UNKNOWN"), ("OUTPUT_LIMIT", "FAILED")
-])
+@pytest.mark.parametrize(
+    "issue,expected", [("TIMEOUT", "TIMED_OUT"), ("UNKNOWN", "UNKNOWN"), ("OUTPUT_LIMIT", "FAILED")]
+)
 def test_nonverifiable_attempts_never_score(
     campaign: tuple[RunnerService, Path, Path], issue: str, expected: str
 ) -> None:
@@ -163,8 +161,13 @@ def test_wrong_metric_rejected(campaign: tuple[RunnerService, Path, Path]) -> No
     runner, _, _ = campaign
     split = runner.campaign.validate().splits["dev"]
     bogus = {
-        "schema_version": "1.0", "status": "complete", "metric": "forged",
-        "direction": "min", "value": 0.0, "unit": "errors", "sample_count": 1,
+        "schema_version": "1.0",
+        "status": "complete",
+        "metric": "forged",
+        "direction": "min",
+        "value": 0.0,
+        "unit": "errors",
+        "sample_count": 1,
         "samples_sha256": split.sha256,
         "correctness": {"passed": True, "validator_id": "toy"},
     }
@@ -193,7 +196,9 @@ def test_real_timeout(campaign: tuple[RunnerService, Path, Path]) -> None:
     runner, _, _ = campaign
     code, stdout, stderr, issue, duration = _bounded_process(
         ["python", "-c", "import time; time.sleep(10)"],
-        cwd=runner.campaign.root, timeout=1, max_output=1024,
+        cwd=runner.campaign.root,
+        timeout=1,
+        max_output=1024,
         env={"PATH": "/usr/bin:/bin"},
     )
     assert issue in ("TIMEOUT", "UNKNOWN")
@@ -206,7 +211,9 @@ def test_real_output_limit(campaign: tuple[RunnerService, Path, Path]) -> None:
     runner, _, _ = campaign
     _, stdout, stderr, issue, duration = _bounded_process(
         ["python", "-c", "print('x' * 99999)"],
-        cwd=runner.campaign.root, timeout=3, max_output=100,
+        cwd=runner.campaign.root,
+        timeout=3,
+        max_output=100,
         env={"PATH": "/usr/bin:/bin"},
     )
     assert issue == "OUTPUT_LIMIT"

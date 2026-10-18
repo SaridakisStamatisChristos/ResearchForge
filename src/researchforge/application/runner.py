@@ -324,7 +324,11 @@ class RunnerService:
         try:
             worktree.parent.mkdir(parents=True, exist_ok=True)
             _git(
-                repository, "worktree", "add", "--detach", str(worktree),
+                repository,
+                "worktree",
+                "add",
+                "--detach",
+                str(worktree),
                 snapshot.repository_commit,
             )
             if (
@@ -334,18 +338,28 @@ class RunnerService:
                 raise ValueError("Exact worktree commit/tree mismatch")
             # Export only minimal host variables, not inherited API keys/credentials.
             env = {
-                key: val for key, val in os.environ.items()
-                if key in {
-                    "PATH", "SYSTEMROOT", "WINDIR", "LANG",
-                    "LC_ALL", "TMPDIR", "TEMP", "TMP",
+                key: val
+                for key, val in os.environ.items()
+                if key
+                in {
+                    "PATH",
+                    "SYSTEMROOT",
+                    "WINDIR",
+                    "LANG",
+                    "LC_ALL",
+                    "TMPDIR",
+                    "TEMP",
+                    "TMP",
                 }
             }
-            env.update({
-                "RF_WORKTREE": str(worktree),
-                "RF_SPLIT_FILE": str(dataset),
-                "RF_SEED": str(manifest.seed),
-                "PYTHONIOENCODING": "utf-8",
-            })
+            env.update(
+                {
+                    "RF_WORKTREE": str(worktree),
+                    "RF_SPLIT_FILE": str(dataset),
+                    "RF_SEED": str(manifest.seed),
+                    "PYTHONIOENCODING": "utf-8",
+                }
+            )
             code, stdout, stderr, issue, duration = _bounded_process(
                 argv,
                 cwd=cwd,
@@ -366,8 +380,11 @@ class RunnerService:
                 or _git(worktree, "rev-parse", "HEAD^{tree}") != snapshot.repository_tree
                 or subprocess.run(
                     ["git", "-C", str(worktree), "diff", "--quiet", "HEAD"],
-                    capture_output=True, timeout=10, check=False,
-                ).returncode != 0
+                    capture_output=True,
+                    timeout=10,
+                    check=False,
+                ).returncode
+                != 0
             ):
                 reason = "WORKTREE_MUTATED"
             elif any(
