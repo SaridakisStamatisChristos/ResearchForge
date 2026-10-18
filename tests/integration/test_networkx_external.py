@@ -38,19 +38,21 @@ def test_real_upstream_networkx_produces_replayable_verified_results(executed: P
     assert report["paired_discordance"] == {"left_only": 0, "right_only": 0}
     assert report["source"] == "OFFLINE_REPLAY_OF_TRUSTED_LOCAL_RECEIPT"
     assert set(report["by_family"]) >= {
-        "path", "disconnected", "zero-weight", "multi-edge", "cyclic", "seeded-sparse"
+        "path",
+        "disconnected",
+        "zero-weight",
+        "multi-edge",
+        "cyclic",
+        "seeded-sparse",
     }
     assert len(list((executed / "raw-bundle" / "logs").rglob("*.stdout"))) == 24
     assert all(
-        entry["left"]["status"] == "VERIFIED_GRAPH"
-        and entry["right"]["status"] == "VERIFIED_GRAPH"
+        entry["left"]["status"] == "VERIFIED_GRAPH" and entry["right"]["status"] == "VERIFIED_GRAPH"
         for entry in report["cases"]
     )
     assert (executed / "raw-bundle" / "bundle.sha256").is_file()
     assert (executed / "verified-report.json").is_file()
-    cli = CliRunner().invoke(
-        app, ["cases", "verify", "--bundle", str(executed / "raw-bundle")]
-    )
+    cli = CliRunner().invoke(app, ["cases", "verify", "--bundle", str(executed / "raw-bundle")])
     assert cli.exit_code == 0, cli.output
     assert json.loads(cli.output)["bundle_sha256"] == report["bundle_sha256"]
 
@@ -61,8 +63,6 @@ def test_independent_oracle_matches_both_external_algorithms() -> None:
     assert nx.__version__ == NETWORKX_VERSION
     for case_id, _, graph in graph_cases():
         content = canonical_json(graph)
-        fixture = Path(__file__).parent / "not-an-input-path"
-        del fixture  # The solver's actual inputs are exercised by the integration run.
         nodes = graph["nodes"]
         edges = graph["edges"]
         multigraph = nx.MultiDiGraph()
@@ -75,9 +75,7 @@ def test_independent_oracle_matches_both_external_algorithms() -> None:
                 if method == "dijkstra"
                 else nx.single_source_bellman_ford_path_length(multigraph, graph["source"])
             )
-            answer = canonical_json(
-                {"distances": {name: observed.get(name) for name in nodes}}
-            )
+            answer = canonical_json({"distances": {name: observed.get(name) for name in nodes}})
             status, reason = verify_graph(content, answer, 0)
             assert status == "VERIFIED_GRAPH", (case_id, method, reason)
 
@@ -103,7 +101,8 @@ def test_mutated_upstream_stdout_is_detected_even_if_receipt_rehashed(
     manifest_path = copied / "bundle.json"
     manifest = json.loads(manifest_path.read_bytes())
     affected = next(
-        row for row in manifest["rows"]
+        row
+        for row in manifest["rows"]
         if row["case_id"] == "chain" and row["tool"] == "networkx-dijkstra"
     )
     affected["stdout_sha256"] = digest_bytes(stdout_path.read_bytes())
@@ -114,9 +113,7 @@ def test_mutated_upstream_stdout_is_detected_even_if_receipt_rehashed(
         verify_bundle(copied)
 
 
-def test_wrapper_rejects_wrong_algorithm_and_exact_version(
-    executed: Path
-) -> None:
+def test_wrapper_rejects_wrong_algorithm_and_exact_version(executed: Path) -> None:
     instance = executed / "inputs" / "parallel.json"
     assert solve(instance, "dijkstra") == solve(instance, "bellman-ford")
     assert solve(instance, "dijkstra")["t"] == 2
