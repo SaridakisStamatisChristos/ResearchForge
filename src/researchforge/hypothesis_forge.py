@@ -144,7 +144,7 @@ def _post_openai(body: bytes, api_key: str) -> bytes:
     )
     try:
         with urllib.request.urlopen(request, timeout=20) as response:
-            content = response.read(65537)
+            content = bytes(response.read(65537))
     except (urllib.error.URLError, TimeoutError) as exc:
         raise ForgeInputError("Model provider request failed") from exc
     if len(content) > 65536:
