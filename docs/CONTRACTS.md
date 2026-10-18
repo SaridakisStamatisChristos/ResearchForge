@@ -43,3 +43,22 @@ and a validated result only on success. An orphan start requires explicit
 `rf run recover --mark-unknown`. Unknown process outcomes are not retried
 automatically. Success proves only that the trusted evaluator produced a
 contract-matching result in this local environment.
+
+## PR05 lifecycle and qualification
+
+`HYPOTHESIS_PROPOSED` binds a human-authored falsifiable specification; the
+`CANDIDATE_REGISTERED` event pins a full candidate commit/tree to an existing
+hypothesis and cannot be reassigned. PR04 `ATTEMPT_STARTED` events now carry a
+`candidate_id` (baseline is `baseline`) and the exact corresponding candidate
+commit/tree. `QUALIFICATION_DECIDED` stores immutable, policy-fingerprinted
+`QUALIFIED`, `REJECTED` or `INCONCLUSIVE` decisions and references the source
+terminal-event hashes. The latest attempt governs each candidate/split: failure,
+timeout or unknown does not silently fall back to an earlier valid score.
+
+The deterministic `strict-improvement-v1` policy requires successful, verified
+baseline and candidate results on both `dev` and `qualification`, exploratory
+development improvement, frozen direction and a qualification improvement meeting
+both `minimum_absolute_improvement` and the `allow_equal` rule. A decisive
+failure produces `REJECTED`; missing verified evidence produces `INCONCLUSIVE`.
+Subsequent evidence appends a new decision with a supersession link. Decisions
+never grant Git merge authority and do not constitute independent final evidence.
