@@ -11,6 +11,7 @@ import typer
 from pydantic import BaseModel, ValidationError
 
 from researchforge import __version__
+from researchforge.audit import audit_commands
 from researchforge.application.campaigns import CampaignService, FrozenStateError, ManifestError
 from researchforge.application.final import FinalService
 from researchforge.application.qualification import HypothesisSpec, QualificationService
@@ -74,6 +75,7 @@ skill_commands = typer.Typer(help="Validate or explicitly export portable Agent 
 app.add_typer(skill_commands, name="skill")
 literature_commands = typer.Typer(help="Source-specific scholarly metadata retrieval.")
 app.add_typer(literature_commands, name="literature")
+app.add_typer(audit_commands, name="audit")
 
 
 def version_callback(value: bool) -> None:

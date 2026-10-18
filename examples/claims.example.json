@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "claims": [
+    {
+      "claim_id": "frozen-final",
+      "text": "The registered candidate met the preregistered final threshold",
+      "scope": "Only the frozen local campaign and final-split dataset",
+      "kind": "final_status",
+      "expected": "FINAL_SUPPORTED",
+      "evidence": [
+        {
+          "source": "campaign_event",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "claim_id": "source-observation",
+      "text": "The named DOI appeared in a saved Crossref/OpenAlex retrieval",
+      "scope": "Only the exact source snapshot and provider at retrieval time",
+      "kind": "literature_doi",
+      "expected": "10.1038/nphys1170",
+      "evidence": [
+        {
+          "source": "literature_snapshot",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    }
+  ]
+}
