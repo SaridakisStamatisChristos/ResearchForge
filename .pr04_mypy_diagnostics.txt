@@ -1,0 +1,8 @@
+src/researchforge/application/runner.py:211: error: Module has no attribute "locking"  [attr-defined]
+src/researchforge/application/runner.py:211: error: Module has no attribute "LK_NBLCK"  [attr-defined]
+src/researchforge/application/runner.py:223: error: Module has no attribute "locking"  [attr-defined]
+src/researchforge/application/runner.py:223: error: Module has no attribute "LK_UNLCK"  [attr-defined]
+src/researchforge/application/runner.py:234: error: Argument 1 to "int" has incompatible type "str | int | None"; expected "str | Buffer | SupportsInt | SupportsIndex | SupportsTrunc"  [arg-type]
+src/researchforge/application/runner.py:297: error: Argument 1 to "int" has incompatible type "str | int | None"; expected "str | Buffer | SupportsInt | SupportsIndex | SupportsTrunc"  [arg-type]
+src/researchforge/application/runner.py:433: error: Argument 1 to "int" has incompatible type "str | int | None"; expected "str | Buffer | SupportsInt | SupportsIndex | SupportsTrunc"  [arg-type]
+Found 7 errors in 1 file (checked 16 source files)
