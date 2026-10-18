@@ -27,3 +27,16 @@ The existing real-subprocess SAT/graph toy suite remains as negative controls;
 no user-owned algorithm or repo is used as the experimental target. These
 small executions establish integration and local correctness, not broad
 performance superiority or publication readiness.
+
+
+### PR14 — agent-uplift evaluation harness
+
+Implemented on a separate PR14 branch: immutable fixed-task plan contract, an
+opt-in trusted-local shell-free paired agent runner with SHA-pinned source,
+control/full/leave-one-out ablation exposure, bounded execution, independent
+exact-answer scoring, logged raw outputs, deterministic descriptive intervals
+and offline receipt verification. Reference mechanical fixture exercises
+32 actual subprocesses in CI but **is not empirical LLM agent uplift**.
+A genuine externally sampled and independently scored model-agent campaign,
+with controlled provider identity/tokens, remains necessary before any
+agent-performance superiority claim. See docs/AGENT_UPLIFT.md.
