@@ -4,10 +4,12 @@ Local-first research experimentation toolkit, built independently from RF-ARCH-0
 
 ## Status
 
-**Through PR05:** typed contracts, frozen campaign inputs, append-only evidence/CAS,
-trusted-local Git worktree execution, candidate registration and deterministic selection-stage
-qualification are implemented. Statistical comparison, untouched final evaluation, offline E2E
-demo and portable skill remain future PR06–PR07 work. This does not certify scientific claims.
+**PR01–PR07 MVP implementation:** typed contracts, frozen campaign inputs,
+append-only evidence/CAS, trusted-local Git worktree execution, candidate registration,
+deterministic qualification, statistical summaries, one-shot final evaluation, real offline
+toy demonstration, and a portable skill are implemented. Core operation needs no external
+API keys or network connection. This is not a security sandbox, scientific-truth
+certification, production-ready service, or a license selection.
 
 ## Quick start
 
@@ -151,3 +153,41 @@ exploratory percentile bootstrap requiring suitable sampling assumptions; it
 does not automatically change the frozen final comparison policy. All reports
 replay evidence offline and can be written only to a *new* file. No automatic
 network, cloud or model execution is involved.
+
+## PR07: end-to-end offline MVP demonstration
+
+On a clean checkout with Python 3.12+, Git, and package dependencies installed:
+
+```bash
+python -m pip install -e '.[dev]'
+rf demo run --offline --output /tmp/rf-toy-demo-001
+rf verify --campaign /tmp/rf-toy-demo-001/campaign
+rf report --campaign /tmp/rf-toy-demo-001/campaign --format md
+rf skill validate --name researchforge-experiment
+rf skill export --name researchforge-experiment --target /tmp/agent-skills
+```
+
+The demo exclusively creates a **new output directory** with a Git repository containing
+three actual model commits (baseline, generalizing candidate and development-only overfit),
+disjoint frozen dev/qualification/final datasets, an evaluator Python script, immutable
+campaign ledger and CAS, and final reports. Eight real shell-free evaluator subprocesses
+run on exact detached worktrees. The good candidate must qualify, the overfit candidate
+must be rejected, and the one-shot final must agree with its predeclared comparison.
+
+The demo writes `summary.json`, `report.json`, `report.md`; it refuses to overwrite an
+existing destination. A second run requires a **different empty path**. Compare stable
+evaluator/split SHA-256 and raw result hashes across reruns; ledger hashes, Git commit
+metadata, timestamps and output paths need not match. To inspect past outcomes after a
+crash, do **not** automatically rerun the same demo directory.
+
+Portable skill metadata is bundled with the installed Python package and mirrored under
+`skills/researchforge-experiment/SKILL.md` in the source tree. Validation is an offline
+metadata/reference check, **not** an official external standards certification. Export
+only writes to an explicitly chosen new destination and refuses overwriting skills.
+
+**Safety:** `--offline` means the built-in demo uses local-only code and Git; it does
+not create a sandbox or globally disable networking for arbitrary Python processes.
+Never use the trusted-local runner on adversarial code. Final comparisons are
+aggregate, single-fixture observations—not generalizable significance tests.
+
+See [MVP acceptance evidence](docs/MVP_ACCEPTANCE.md) for invariant and test coverage.

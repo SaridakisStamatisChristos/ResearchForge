@@ -20,12 +20,21 @@ from researchforge.application.runner import (
     _pairs_unique,
     _reject_constant,
 )
+from researchforge.demo import DemoError, run_demo
 from researchforge.domain.envelope import ApiError, ResponseEnvelope
 from researchforge.domain.models import (
     CampaignManifest,
     EvaluationResult,
     EvidenceEvent,
     FrozenManifest,
+)
+from researchforge.portable_skills import (
+    NAME as PORTABLE_SKILL_NAME,
+)
+from researchforge.portable_skills import (
+    PortableSkillError,
+    export_skill,
+    validate_skill,
 )
 from researchforge.statistics import StatisticalInputError, paired_comparison
 
@@ -44,6 +53,10 @@ final_commands = typer.Typer(help="One-shot pre-registered final evaluation.")
 app.add_typer(final_commands, name="final")
 stats_commands = typer.Typer(help="Deterministic descriptive statistical comparisons.")
 app.add_typer(stats_commands, name="stats")
+demo_commands = typer.Typer(help="Real, fully offline trusted-toy demonstration.")
+app.add_typer(demo_commands, name="demo")
+skill_commands = typer.Typer(help="Validate or explicitly export portable Agent Skills.")
+app.add_typer(skill_commands, name="skill")
 
 
 def version_callback(value: bool) -> None:
@@ -368,6 +381,64 @@ def stats_paired(
     except (OSError, ValueError, KeyError, TypeError, StatisticalInputError) as exc:
         typer.echo(f"INVALID_INPUT: {exc}", err=True)
         raise typer.Exit(code=2) from exc
+
+
+@demo_commands.command("run")
+def demo_run(
+    output: Annotated[Path, typer.Option("--output")],
+    offline: Annotated[bool, typer.Option("--offline")] = False,
+) -> None:
+    """Execute the known trusted toy fixture without remote source/API requests."""
+    if not offline:
+        typer.echo("REFUSED: demo requires explicit --offline", err=True)
+        raise typer.Exit(code=3)
+    try:
+        result = run_demo(output)
+        typer.echo(ResponseEnvelope(status="OK", data=result).model_dump_json(indent=2))
+    except (FileExistsError, OSError, ValueError) as exc:
+        typer.echo(f"INVALID_INPUT: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    except (DemoError, ExecutionRefused) as exc:
+        typer.echo(f"FAILED: {exc}", err=True)
+        raise typer.Exit(code=4) from exc
+    except RunnerIntegrityError as exc:
+        typer.echo(f"CORRUPT: {exc}", err=True)
+        raise typer.Exit(code=6) from exc
+
+
+@skill_commands.command("validate")
+def skill_validate(
+    name: Annotated[str, typer.Option("--name")] = PORTABLE_SKILL_NAME,
+) -> None:
+    """Validate bundled skill metadata and live CLI references, without network."""
+    try:
+        if name != PORTABLE_SKILL_NAME:
+            raise PortableSkillError("Unknown bundled skill name")
+        result = validate_skill()
+        typer.echo(ResponseEnvelope(status="OK", data=result).model_dump_json())
+    except (PortableSkillError, OSError) as exc:
+        typer.echo(f"INVALID_INPUT: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+
+@skill_commands.command("export")
+def skill_export(
+    target: Annotated[Path, typer.Option("--target")],
+    name: Annotated[str, typer.Option("--name")] = PORTABLE_SKILL_NAME,
+) -> None:
+    """Export only to an explicit destination; never replace existing skills."""
+    try:
+        if name != PORTABLE_SKILL_NAME:
+            raise PortableSkillError("Unknown bundled skill name")
+        location = export_skill(target)
+        typer.echo(
+            ResponseEnvelope(
+                status="OK", data={"name": name, "path": str(location)}
+            ).model_dump_json()
+        )
+    except (PortableSkillError, OSError) as exc:
+        typer.echo(f"REFUSED: {exc}", err=True)
+        raise typer.Exit(code=3) from exc
 
 
 if __name__ == "__main__":

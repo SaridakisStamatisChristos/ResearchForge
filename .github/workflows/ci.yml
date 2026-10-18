@@ -1,4 +1,4 @@
-name: PR01 contracts and packaging
+name: ResearchForge full MVP quality
 on:
   push:
     branches: [main, "pr/**"]
@@ -31,3 +31,11 @@ jobs:
         run: pytest -q
       - name: CLI smoke
         run: rf --version && rf contracts schema --name evaluator-result > /dev/null
+      - name: Real offline demonstration and independent replay
+        run: |
+          rf demo run --offline --output "${RUNNER_TEMP}/researchforge-mvp" > "${RUNNER_TEMP}/demo-output.json"
+          rf verify --campaign "${RUNNER_TEMP}/researchforge-mvp/campaign" > /dev/null
+          rf report --campaign "${RUNNER_TEMP}/researchforge-mvp/campaign" --format md > /dev/null
+          rf skill validate --name researchforge-experiment > /dev/null
+          python -c 'import json,os,pathlib; p=pathlib.Path(os.environ["RUNNER_TEMP"])/"researchforge-mvp"/"summary.json"; s=json.loads(p.read_text()); assert s["decision_statuses"]=={"good":"QUALIFIED","overfit":"REJECTED"} and s["final_status"]=="FINAL_SUPPORTED"'
+
