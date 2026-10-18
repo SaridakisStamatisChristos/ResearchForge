@@ -96,7 +96,7 @@ def _case_input(kind: str, case_id: str) -> bytes:
             "sat-trap": b"p cnf 2 2\n1 2 0\n-1 2 0\n",
         }
         return content[case_id]
-    graph: dict[str, Any] = {
+    graph_examples: dict[str, dict[str, Any]] = {
         "path-one": {
             "nodes": ["s", "a", "t"],
             "source": "s",
@@ -112,8 +112,8 @@ def _case_input(kind: str, case_id: str) -> bytes:
             "source": "s",
             "edges": [["s", "a", 0], ["a", "t", 1], ["s", "t", 7]],
         },
-    }[case_id]
-    return canonical_json(graph)
+    }
+    return canonical_json(graph_examples[case_id])
 
 
 def run_case_demo(root: Path) -> dict[str, Any]:
