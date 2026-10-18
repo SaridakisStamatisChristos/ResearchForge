@@ -260,7 +260,7 @@ def test_cli_add_and_register(
 
 
 def test_forged_qualification_verdict_is_not_reused(
-    research: tuple[QualificationService, RunnerService, Path, dict[str, str]]
+    research: tuple[QualificationService, RunnerService, Path, dict[str, str]],
 ) -> None:
     service, runner, _, commits = research
     add(service, "h1")
@@ -269,7 +269,10 @@ def test_forged_qualification_verdict_is_not_reused(
     seq = ledger.verify("selection-001")["event_count"]
     assert isinstance(seq, int)
     ledger.append_event(
-        "selection-001", seq, "QUALIFICATION_DECIDED", "good",
+        "selection-001",
+        seq,
+        "QUALIFICATION_DECIDED",
+        "good",
         {"candidate_id": "good", "status": "QUALIFIED", "evidence_events": {}},
     )
     with pytest.raises(RunnerIntegrityError, match="contradicts deterministic replay"):

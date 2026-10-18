@@ -301,9 +301,14 @@ class QualificationService:
             if prior is not None and prior[1].get("evidence_events") == result["evidence_events"]:
                 # Event-chain integrity does not imply a correct policy verdict.
                 fields = (
-                    "candidate_id", "status", "reason", "policy_version",
-                    "policy_sha256", "qualified_improvement",
-                    "minimum_absolute_improvement", "selection_stage_only",
+                    "candidate_id",
+                    "status",
+                    "reason",
+                    "policy_version",
+                    "policy_sha256",
+                    "qualified_improvement",
+                    "minimum_absolute_improvement",
+                    "selection_stage_only",
                 )
                 if any(prior[1].get(key) != result[key] for key in fields):
                     raise RunnerIntegrityError(
