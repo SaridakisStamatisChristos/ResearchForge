@@ -24,6 +24,7 @@ from researchforge.application.runner import (
     _reject_constant,
 )
 from researchforge.audit import audit_commands
+from researchforge.case_studies import CasePlan, case_commands
 from researchforge.demo import DemoError, run_demo
 from researchforge.domain.envelope import ApiError, ResponseEnvelope
 from researchforge.domain.models import (
@@ -98,6 +99,7 @@ app.add_typer(literature_commands, name="literature")
 app.add_typer(audit_commands, name="audit")
 paper_commands = typer.Typer(help="Offline evidence-backed scientific manuscript exports.")
 app.add_typer(paper_commands, name="paper")
+app.add_typer(case_commands, name="cases")
 
 
 def version_callback(value: bool) -> None:
@@ -128,11 +130,12 @@ def schema(
         "manifest-lock": FrozenManifest,
         "hypothesis-design": ResearchDesign,
         "hypothesis-draft": HypothesisDraft,
+        "case-plan": CasePlan,
     }
     if name not in models:
         raise typer.BadParameter(
             "choose campaign, evaluator-result, evidence-event, manifest-lock, "
-            "hypothesis-design or hypothesis-draft"
+            "hypothesis-design, hypothesis-draft or case-plan"
         )
     typer.echo(json.dumps(models[name].model_json_schema(), indent=2, sort_keys=True))
 
