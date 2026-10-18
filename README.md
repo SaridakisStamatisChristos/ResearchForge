@@ -4,9 +4,10 @@ Local-first research experimentation toolkit, built independently from RF-ARCH-0
 
 ## Status
 
-**PR01 foundation only.** The `rf` CLI, typed public contracts and JSON schemas are usable.
-No evaluator, qualification, Git worktree execution or evidence ledger is implemented yet.
-Do not claim experimental reproducibility or scientific conclusions from PR01 alone.
+**Through PR05:** typed contracts, frozen campaign inputs, append-only evidence/CAS,
+trusted-local Git worktree execution, candidate registration and deterministic selection-stage
+qualification are implemented. Statistical comparison, untouched final evaluation, offline E2E
+demo and portable skill remain future PR06–PR07 work. This does not certify scientific claims.
 
 ## Quick start
 
