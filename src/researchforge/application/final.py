@@ -398,7 +398,8 @@ class FinalService:
                     f"Candidate: `{plan['candidate_id']}`",
                     f"Commit: `{plan['candidate_commit']}`",
                     f"Selected qualification event: `{plan['selection_event_sha256']}`",
-                    f"Selection-stage qualification exposure: {plan['qualification_attempt_exposure']}",
+                    "Selection-stage qualification exposure: "
+                    f"{plan['qualification_attempt_exposure']}",
                     "",
                 ]
             )
