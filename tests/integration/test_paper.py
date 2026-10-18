@@ -82,7 +82,7 @@ def test_real_executed_final_produces_bounded_traceable_table(tmp_path: Path) ->
     row = report["measurements"][0]
     assert row["scope"] == "frozen final dataset only"
     assert row["split_sha256"] == json.loads(
-        (campaign / ".researchforge" / "manifest.lock.json").read_text()
+        (campaign / "manifest.lock.json").read_text()
     )["splits"]["final"]["sha256"]
     assert row["baseline"]["stdout_sha256"] and row["candidate"]["stdout_sha256"]
     assert row["improvement"] == (
@@ -172,7 +172,6 @@ def test_cli_no_clobber_and_integrity_fail_closed(tmp_path: Path) -> None:
     assert as_json.exit_code == 0, as_json.output
     assert len(json.loads(as_json.output)["measurements"]) == 1
     ledger = EventLedger(campaign)
-    event = ledger.read_events("toy-optimizer-v1")[0]
     blob = ledger.cas.root
     blob_file = next(path for path in blob.rglob("*") if path.is_file())
     blob_file.write_bytes(b"corruption")
