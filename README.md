@@ -34,6 +34,7 @@ See `docs/ARCHITECTURE.md`, `docs/CONTRACTS.md` and `docs/roadmap.md`.
 ```python
 from pathlib import Path
 from researchforge.application.evidence import EventLedger
+
 ledger = EventLedger(Path("/tmp/rf-campaign"))
 event = ledger.append_event("example", 0, "CREATED", "example", {"objective": "demo"})
 print(event.event_sha256)
