@@ -6,6 +6,7 @@ import json
 from typing import Annotated
 
 import typer
+from pydantic import BaseModel
 
 from researchforge import __version__
 from researchforge.domain.envelope import ApiError, ResponseEnvelope
@@ -37,7 +38,7 @@ def schema(
     name: Annotated[str, typer.Option("--name")],
 ) -> None:
     """Print the frozen v1 JSON-schema contract for a specified model."""
-    models = {
+    models: dict[str, type[BaseModel]] = {
         "campaign": CampaignManifest,
         "evaluator-result": EvaluationResult,
         "evidence-event": EvidenceEvent,
