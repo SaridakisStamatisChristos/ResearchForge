@@ -199,7 +199,7 @@ def run_demo(output: Path) -> dict[str, Any]:
     final = FinalService(campaign.root)
     if final.inspect()["final_status"] != "NOT_NOMINATED":
         raise DemoError("Final data was accessed before nomination")
-    plan = final.nominate("good")
+    final.nominate("good")
     conclusion = final.evaluate(approved=True)
     verified = final.inspect()
     if conclusion["status"] != "FINAL_SUPPORTED" or verified["final_result"] != conclusion:
