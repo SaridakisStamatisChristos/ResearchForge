@@ -300,11 +300,11 @@ def test_hypothesis_forge_admission_is_gated_and_traceable(
     )
     draft = assemble_draft(design)
     with pytest.raises(ExecutionRefused, match="approval"):
-        service.admit_forge_draft(draft, approved_by_human=False,
-                                 expected_sha256=draft.draft_sha256)
+        service.admit_forge_draft(
+            draft, approved_by_human=False, expected_sha256=draft.draft_sha256
+        )
     with pytest.raises(ExecutionRefused, match="digest"):
-        service.admit_forge_draft(draft, approved_by_human=True,
-                                 expected_sha256="0" * 64)
+        service.admit_forge_draft(draft, approved_by_human=True, expected_sha256="0" * 64)
     ledger = EventLedger(runner.campaign.root)
     assert not any(
         event.event_type == "HYPOTHESIS_FORGE_APPROVED"
@@ -315,17 +315,20 @@ def test_hypothesis_forge_admission_is_gated_and_traceable(
     )
     assert result["human_approved"] is True
     assert result["evaluation_executed"] is False
-    assert service.admit_forge_draft(
-        draft, approved_by_human=True, expected_sha256=draft.draft_sha256
-    )["status"] == "EXISTS"
+    assert (
+        service.admit_forge_draft(
+            draft, approved_by_human=True, expected_sha256=draft.draft_sha256
+        )["status"]
+        == "EXISTS"
+    )
     events = ledger.read_events("selection-001")
     assert [e.event_type for e in events][-2:] == [
-        "HYPOTHESIS_FORGE_APPROVED", "HYPOTHESIS_PROPOSED"
+        "HYPOTHESIS_FORGE_APPROVED",
+        "HYPOTHESIS_PROPOSED",
     ]
     assert ledger.verify("selection-001")["event_count"] == 3
     assert "forge-001" in service.registry(ledger, "selection-001")[0]
-    service.register(candidate_id="good", hypothesis_id="forge-001",
-                     commit=commits["good"])
+    service.register(candidate_id="good", hypothesis_id="forge-001", commit=commits["good"])
     assert service.decide("good")["status"] == "INCONCLUSIVE"
 
     mismatched = design.model_copy(
@@ -333,5 +336,4 @@ def test_hypothesis_forge_admission_is_gated_and_traceable(
     )
     bad = assemble_draft(mismatched)
     with pytest.raises(ExecutionRefused, match="metric"):
-        service.admit_forge_draft(bad, approved_by_human=True,
-                                 expected_sha256=bad.draft_sha256)
+        service.admit_forge_draft(bad, approved_by_human=True, expected_sha256=bad.draft_sha256)
