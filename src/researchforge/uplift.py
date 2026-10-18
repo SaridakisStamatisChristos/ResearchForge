@@ -75,9 +75,7 @@ class Arm(StrictModel):
             or self.argv.count("{output}") != 1
             or self.argv.count("{context}") != 1
             or any(
-                not item
-                or "\x00" in item
-                or (("{" in item or "}" in item) and item not in _TOKENS)
+                not item or "\x00" in item or (("{" in item or "}" in item) and item not in _TOKENS)
                 for item in self.argv
             )
         ):
