@@ -76,7 +76,7 @@ command-line interface already matches this schema.
   stores SHA-256 of stdout/stderr. Before every run it verifies executable
   bytes match the frozen digest. It never accesses or alters the user's
   SatSolv or ADES repositories.
-- Bundle replay is read-only. It requires the exact raw logs and inputs,
+- Bundle replay is read-only and portable: it preserves the original execution root\n  in its receipt but permits relocating the bundled raw files. It requires exact raw logs and inputs,
   validates digests, reconstructs every correctness result instead of
   trusting the stored verdict, and rejects changed or missing files.
   There is no unattended execution, network access or auto-merge.
