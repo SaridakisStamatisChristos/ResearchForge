@@ -227,8 +227,8 @@ class FinalService:
         if ended and (len(starts) != 2 or len(terminal) != 2):
             raise RunnerIntegrityError("Final conclusion lacks both terminal arms")
         if len(starts) != len(terminal):
-            # This is an interrupted final run, not evidence of a result.
-            return terminal, False
+            # An interrupted final run consumed the one-shot exposure.
+            return terminal, began
         return terminal, began
 
     @staticmethod
