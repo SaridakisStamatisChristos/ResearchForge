@@ -9,7 +9,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 from urllib.parse import unquote, urlparse
 
 from pydantic import ValidationError
@@ -19,7 +19,7 @@ from researchforge.application.evidence import (
     LedgerIntegrityError,
     SequenceConflict,
 )
-from researchforge.domain.models import CampaignManifest, FrozenManifest, FrozenSplit, SplitRole
+from researchforge.domain.models import CampaignManifest, FrozenManifest, FrozenSplit
 from researchforge.domain.serialization import canonical_json, digest_bytes
 
 
@@ -201,7 +201,7 @@ class CampaignService:
                 raise ManifestError("Sample IDs overlap across split roles")
             seen.update(ids)
             splits[role] = FrozenSplit(
-                role=cast(SplitRole, role),
+                role=role,
                 relative_path=relative,
                 sha256=digest_bytes(path.read_bytes()),
                 case_count=len(ids),
