@@ -48,6 +48,7 @@ from researchforge.portable_skills import (
     NAME as PORTABLE_SKILL_NAME,
 )
 from researchforge.portable_skills import (
+    SUPPORTED_NAMES,
     PortableSkillError,
     export_skill,
     validate_skill,
@@ -431,9 +432,9 @@ def skill_validate(
 ) -> None:
     """Validate bundled skill metadata and live CLI references, without network."""
     try:
-        if name != PORTABLE_SKILL_NAME:
+        if name not in SUPPORTED_NAMES:
             raise PortableSkillError("Unknown bundled skill name")
-        result = validate_skill()
+        result = validate_skill(name=name)
         typer.echo(ResponseEnvelope(status="OK", data=result).model_dump_json())
     except (PortableSkillError, OSError) as exc:
         typer.echo(f"INVALID_INPUT: {exc}", err=True)
@@ -447,9 +448,9 @@ def skill_export(
 ) -> None:
     """Export only to an explicit destination; never replace existing skills."""
     try:
-        if name != PORTABLE_SKILL_NAME:
+        if name not in SUPPORTED_NAMES:
             raise PortableSkillError("Unknown bundled skill name")
-        location = export_skill(target)
+        location = export_skill(target, name=name)
         typer.echo(
             ResponseEnvelope(
                 status="OK", data={"name": name, "path": str(location)}
