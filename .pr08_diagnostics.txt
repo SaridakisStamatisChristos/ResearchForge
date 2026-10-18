@@ -1,0 +1,21 @@
+==== RUFF ====
+B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+  --> src/researchforge/literature_archive.py:77:13
+   |
+75 |     except FileExistsError:
+76 |         if file.is_symlink() or file.read_bytes() != body:
+77 |             raise LiteratureArchiveError("Existing literature archive conflicts with digest")
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+78 |     return key
+   |
+
+Found 1 error.
+==== RUFF FORMAT ====
+50 files already formatted
+==== MYPY ====
+src/researchforge/literature.py:149: error: Returning Any from function declared to return "int | None"  [no-any-return]
+Found 1 error in 1 file (checked 23 source files)
+==== TESTS ====
+........................................................................ [ 69%]
+...............................                                          [100%]
+103 passed in 14.41s

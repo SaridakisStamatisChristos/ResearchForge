@@ -51,8 +51,11 @@ def normalize_doi(value: str) -> str:
         if (
             parts.hostname is None
             or parts.hostname.lower() not in {"doi.org", "dx.doi.org"}
-            or parts.username is not None or parts.password is not None
-            or parts.query or parts.fragment or parts.port is not None
+            or parts.username is not None
+            or parts.password is not None
+            or parts.query
+            or parts.fragment
+            or parts.port is not None
         ):
             raise LiteratureInputError("Only a bare DOI or doi.org resolver URL is allowed")
         raw = parts.path.lstrip("/")
@@ -161,12 +164,21 @@ def _normalize_item(provider: ProviderName, item: dict[str, Any], kind: Kind) ->
         title = _first_title(item.get("display_name"))
         if kind == "works":
             author_rows = item.get("authorships", [])
-            authors = [
-                name for row in author_rows if isinstance(row, dict)
-                for name in [_first_title(row.get("author", {}).get("display_name"))
-                             if isinstance(row.get("author"), dict) else None]
-                if name is not None
-            ] if isinstance(author_rows, list) else []
+            authors = (
+                [
+                    name
+                    for row in author_rows
+                    if isinstance(row, dict)
+                    for name in [
+                        _first_title(row.get("author", {}).get("display_name"))
+                        if isinstance(row.get("author"), dict)
+                        else None
+                    ]
+                    if name is not None
+                ]
+                if isinstance(author_rows, list)
+                else []
+            )
             doi = _provider_doi(item.get("doi"))
             year = _year(item.get("publication_year"))
         else:
@@ -182,7 +194,8 @@ def _normalize_item(provider: ProviderName, item: dict[str, Any], kind: Kind) ->
             for entry in raw_authors:
                 if isinstance(entry, dict):
                     name = " ".join(
-                        part.strip() for part in (entry.get("given"), entry.get("family"))
+                        part.strip()
+                        for part in (entry.get("given"), entry.get("family"))
                         if isinstance(part, str) and part.strip()
                     )
                     if name:
@@ -190,9 +203,11 @@ def _normalize_item(provider: ProviderName, item: dict[str, Any], kind: Kind) ->
         doi = _provider_doi(item.get("DOI"))
         date_info = item.get("published", item.get("issued", {}))
         parts = date_info.get("date-parts", []) if isinstance(date_info, dict) else []
-        year = _year(parts[0][0]) if (
-            isinstance(parts, list) and parts and isinstance(parts[0], list) and parts[0]
-        ) else None
+        year = (
+            _year(parts[0][0])
+            if (isinstance(parts, list) and parts and isinstance(parts[0], list) and parts[0])
+            else None
+        )
     if not isinstance(pid, str) or not pid.strip():
         raise LiteratureSourceError("Provider record has no stable provider ID")
     raw = dict(item)
@@ -229,9 +244,7 @@ class HttpSource:
         self.allow_network = allow_network
         self._client = client
 
-    async def _fetch(
-        self, url: str, parameters: dict[str, str | int]
-    ) -> _PageResult:
+    async def _fetch(self, url: str, parameters: dict[str, str | int]) -> _PageResult:
         if self._client is None and not self.allow_network:
             raise LiteratureInputError("Live literature access requires --allow-network")
         host = urlsplit(url).hostname
@@ -253,8 +266,10 @@ class HttpSource:
                     "Install ResearchForge with the [literature] extra for live HTTP"
                 ) from exc
             client = httpx.AsyncClient(
-                timeout=httpx.Timeout(8.0), follow_redirects=False,
-                trust_env=False, headers={"User-Agent": "ResearchForge/0.1 (research metadata client)"},
+                timeout=httpx.Timeout(8.0),
+                follow_redirects=False,
+                trust_env=False,
+                headers={"User-Agent": "ResearchForge/0.1 (research metadata client)"},
             )
         try:
             for attempt in range(3):
@@ -290,11 +305,18 @@ class HttpSource:
         if status_value == 404:
             return _PageResult(
                 RetrievalPage(
-                    requested_url=request_url, parameters=parameters, observed_at_utc=observed,
-                    http_status=404, response_sha256=digest_bytes(response.content),
-                    result_count=0, retry_count=retries,
-                    rate_limit_retry_after=retry_after, failure_reason=None,
-                ), None, True
+                    requested_url=request_url,
+                    parameters=parameters,
+                    observed_at_utc=observed,
+                    http_status=404,
+                    response_sha256=digest_bytes(response.content),
+                    result_count=0,
+                    retry_count=retries,
+                    rate_limit_retry_after=retry_after,
+                    failure_reason=None,
+                ),
+                None,
+                True,
             )
         body: dict[str, Any] | None = None
         raw: bytes | None = None
@@ -305,7 +327,8 @@ class HttpSource:
             else:
                 try:
                     obj = json.loads(
-                        raw.decode("utf-8"), object_pairs_hook=_object_pairs,
+                        raw.decode("utf-8"),
+                        object_pairs_hook=_object_pairs,
                         parse_constant=_constant,
                     )
                     if not isinstance(obj, dict):
@@ -317,10 +340,15 @@ class HttpSource:
         elif response is not None:
             error = f"HTTP_{status_value}"
         page = RetrievalPage(
-            requested_url=request_url, parameters=parameters, observed_at_utc=observed,
-            http_status=status_value, response_sha256=digest_bytes(raw) if raw is not None else None,
-            result_count=0, retry_count=retries,
-            rate_limit_retry_after=retry_after, failure_reason=error,
+            requested_url=request_url,
+            parameters=parameters,
+            observed_at_utc=observed,
+            http_status=status_value,
+            response_sha256=digest_bytes(raw) if raw is not None else None,
+            result_count=0,
+            retry_count=retries,
+            rate_limit_retry_after=retry_after,
+            failure_reason=error,
         )
         return _PageResult(page, body, False)
 
@@ -329,27 +357,43 @@ class BaseProvider(HttpSource):
     endpoint: str
 
     def _batch(
-        self, *, kind: Kind, query: str, items: list[LiteratureRecord],
-        pages: list[RetrievalPage], total: int | None,
-        cursor: str | None, complete: bool, not_found: bool = False,
+        self,
+        *,
+        kind: Kind,
+        query: str,
+        items: list[LiteratureRecord],
+        pages: list[RetrievalPage],
+        total: int | None,
+        cursor: str | None,
+        complete: bool,
+        not_found: bool = False,
     ) -> RetrievalBatch:
         error = next((p.failure_reason for p in reversed(pages) if p.failure_reason), None)
         state: Completeness = (
-            "UNKNOWN" if error is not None and not items
-            else "PARTIAL" if error is not None or not complete
+            "UNKNOWN"
+            if error is not None and not items
+            else "PARTIAL"
+            if error is not None or not complete
             else "COMPLETE"
         )
         # Hash the ordered response hashes, not just the last page.
         hashes = [p.response_sha256 for p in pages if p.response_sha256 is not None]
         anchor = pages[0] if pages else None
         return RetrievalBatch(
-            provider=self.provider, kind=kind, query=query, items=items, pages=pages,
+            provider=self.provider,
+            kind=kind,
+            query=query,
+            items=items,
+            pages=pages,
             requested_url=anchor.requested_url if anchor else self.endpoint,
             parameters=anchor.parameters if anchor else {},
             observed_at_utc=anchor.observed_at_utc if anchor else datetime.now(UTC),
             response_hash=digest_bytes(canonical_json(hashes)) if hashes else None,
-            reported_total=total, retrieved_total=len(items), next_cursor=cursor,
-            completeness=state, failure_reason=error,
+            reported_total=total,
+            retrieved_total=len(items),
+            next_cursor=cursor,
+            completeness=state,
+            failure_reason=error,
             lookup_status="NOT_FOUND" if not_found else "FOUND" if items else "NOT_APPLICABLE",
         )
 
@@ -373,11 +417,15 @@ class OpenAlexProvider(BaseProvider):
             except (LiteratureSourceError, ValueError, ValidationError):
                 page.page = page.page.model_copy(update={"failure_reason": "INVALID_WORK"})
                 results = []
-        report = page.page.model_copy(update={"result_count":len(results)})
+        report = page.page.model_copy(update={"result_count": len(results)})
         return self._batch(
-            kind="works", query=doi, items=results, pages=[report],
+            kind="works",
+            query=doi,
+            items=results,
+            pages=[report],
             total=0 if page.not_found else len(results) if results else None,
-            cursor=None, complete=page.body is not None or page.not_found,
+            cursor=None,
+            complete=page.body is not None or page.not_found,
             not_found=page.not_found,
         )
 
@@ -392,21 +440,35 @@ class OpenAlexProvider(BaseProvider):
         exhausted = False
         for _ in range(query.max_pages):
             if cursor in visited:
-                pages.append(RetrievalPage(
-                    requested_url=url, parameters={}, observed_at_utc=datetime.now(UTC),
-                    http_status=None, response_sha256=None, result_count=0, retry_count=0,
-                    rate_limit_retry_after=None, failure_reason="CURSOR_CYCLE",
-                ))
+                pages.append(
+                    RetrievalPage(
+                        requested_url=url,
+                        parameters={},
+                        observed_at_utc=datetime.now(UTC),
+                        http_status=None,
+                        response_sha256=None,
+                        result_count=0,
+                        retry_count=0,
+                        rate_limit_retry_after=None,
+                        failure_reason="CURSOR_CYCLE",
+                    )
+                )
                 break
             visited.add(cursor)
             per_page = min(query.page_size, limit - len(records))
             params: dict[str, str | int] = {
-                "search": query.text, "per-page": per_page, "cursor": cursor
+                "search": query.text,
+                "per-page": per_page,
+                "cursor": cursor,
             }
             result = await self._fetch(url, params)
             page = result.page
             if result.body is None:
-                pages.append(page.model_copy(update={"failure_reason": page.failure_reason or "INVALID_RESPONSE"}))
+                pages.append(
+                    page.model_copy(
+                        update={"failure_reason": page.failure_reason or "INVALID_RESPONSE"}
+                    )
+                )
                 break
             try:
                 rows = result.body["results"]
@@ -421,14 +483,15 @@ class OpenAlexProvider(BaseProvider):
                     raise ValueError("Invalid next cursor")
                 normalized = [
                     _normalize_item("openalex", row, query.kind)
-                    for row in rows if isinstance(row, dict)
+                    for row in rows
+                    if isinstance(row, dict)
                 ]
                 if len(normalized) != len(rows) or len(normalized) > per_page:
                     raise ValueError("Malformed record list or oversized page")
                 if total is None:
                     total = raw_total
                 records.extend(normalized)
-                pages.append(page.model_copy(update={"result_count":len(normalized)}))
+                pages.append(page.model_copy(update={"result_count": len(normalized)}))
                 cursor = next_value or ""
                 if not rows or next_value is None or (total is not None and len(records) >= total):
                     exhausted = True
@@ -439,8 +502,13 @@ class OpenAlexProvider(BaseProvider):
                 pages.append(page.model_copy(update={"failure_reason": "INVALID_PROVIDER_PAYLOAD"}))
                 break
         return self._batch(
-            kind=query.kind, query=query.text, items=records, pages=pages, total=total,
-            cursor=cursor or None, complete=exhausted,
+            kind=query.kind,
+            query=query.text,
+            items=records,
+            pages=pages,
+            total=total,
+            cursor=cursor or None,
+            complete=exhausted,
         )
 
 
@@ -473,10 +541,13 @@ class CrossrefProvider(BaseProvider):
                 page = page.model_copy(update={"failure_reason": "INVALID_WORK"})
                 records = []
         return self._batch(
-            kind="works", query=doi, items=records,
-            pages=[page.model_copy(update={"result_count":len(records)})],
+            kind="works",
+            query=doi,
+            items=records,
+            pages=[page.model_copy(update={"result_count": len(records)})],
             total=0 if result.not_found else len(records) if records else None,
-            cursor=None, complete=result.body is not None or result.not_found,
+            cursor=None,
+            complete=result.body is not None or result.not_found,
             not_found=result.not_found,
         )
 
@@ -492,48 +563,63 @@ class CrossrefProvider(BaseProvider):
         for _ in range(query.max_pages):
             page_size = min(query.page_size, query.limit - len(records))
             params: dict[str, str | int] = {
-                "query.bibliographic": query.text, "rows": page_size, "offset": offset
+                "query.bibliographic": query.text,
+                "rows": page_size,
+                "offset": offset,
             }
             result = await self._fetch(url, params)
             if result.body is None:
-                pages.append(result.page.model_copy(
-                    update={"failure_reason": result.page.failure_reason or "INVALID_RESPONSE"}
-                ))
+                pages.append(
+                    result.page.model_copy(
+                        update={"failure_reason": result.page.failure_reason or "INVALID_RESPONSE"}
+                    )
+                )
                 break
             try:
                 message = self._message(result.body)
                 rows = message["items"]
                 count = message["total-results"]
                 if (
-                    not isinstance(rows, list) or type(count) is not int or count < 0
+                    not isinstance(rows, list)
+                    or type(count) is not int
+                    or count < 0
                     or len(rows) > page_size
                 ):
                     raise ValueError("Invalid Crossref pagination")
                 normalized = [
                     _normalize_item("crossref", row, "works")
-                    for row in rows if isinstance(row, dict)
+                    for row in rows
+                    if isinstance(row, dict)
                 ]
                 if len(normalized) != len(rows):
                     raise ValueError("Invalid item")
                 if total is None:
                     total = count
                 records.extend(normalized)
-                pages.append(result.page.model_copy(update={"result_count":len(normalized)}))
+                pages.append(result.page.model_copy(update={"result_count": len(normalized)}))
                 offset += len(rows)
                 if offset >= count:
                     exhausted = True
                     break
                 if not rows:
-                    pages.append(result.page.model_copy(update={"failure_reason":"EMPTY_PREMATURE_PAGE"}))
+                    pages.append(
+                        result.page.model_copy(update={"failure_reason": "EMPTY_PREMATURE_PAGE"})
+                    )
                     break
                 if len(records) >= query.limit:
                     break
             except (KeyError, ValueError, LiteratureSourceError, ValidationError):
-                pages.append(result.page.model_copy(update={"failure_reason": "INVALID_PROVIDER_PAYLOAD"}))
+                pages.append(
+                    result.page.model_copy(update={"failure_reason": "INVALID_PROVIDER_PAYLOAD"})
+                )
                 break
         return self._batch(
-            kind="works", query=query.text, items=records, pages=pages,
-            total=total, cursor=str(offset) if not exhausted else None,
+            kind="works",
+            query=query.text,
+            items=records,
+            pages=pages,
+            total=total,
+            cursor=str(offset) if not exhausted else None,
             complete=exhausted,
         )
 
@@ -549,8 +635,11 @@ def group_by_doi(batches: list[RetrievalBatch]) -> dict[str, list[LiteratureReco
 
 
 async def run_lookup(
-    identifier: str, *, sources: tuple[ProviderName, ...],
-    allow_network: bool = False, clients: dict[str, Any] | None = None,
+    identifier: str,
+    *,
+    sources: tuple[ProviderName, ...],
+    allow_network: bool = False,
+    clients: dict[str, Any] | None = None,
 ) -> list[RetrievalBatch]:
     doi = normalize_doi(identifier)
     clients = clients or {}
@@ -562,8 +651,11 @@ async def run_lookup(
 
 
 async def run_search(
-    query: LiteratureQuery, *, sources: tuple[ProviderName, ...],
-    allow_network: bool = False, clients: dict[str, Any] | None = None,
+    query: LiteratureQuery,
+    *,
+    sources: tuple[ProviderName, ...],
+    allow_network: bool = False,
+    clients: dict[str, Any] | None = None,
 ) -> list[RetrievalBatch]:
     clients = clients or {}
     providers: dict[str, LiteratureProvider] = {

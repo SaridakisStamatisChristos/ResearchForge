@@ -12,7 +12,6 @@ from pydantic import ValidationError
 
 from researchforge.domain.serialization import canonical_json, digest_bytes
 from researchforge.literature import (
-    LiteratureRecord,
     RetrievalBatch,
     group_by_doi,
 )
@@ -42,8 +41,11 @@ def snapshot(batches: list[RetrievalBatch]) -> dict[str, Any]:
         "batches": [batch.model_dump(mode="json") for batch in batches],
         "canonical_groups": {
             key: [
-                {"provider": item.provider, "provider_id": item.provider_id,
-                 "record_sha256": item.raw_sha256}
+                {
+                    "provider": item.provider,
+                    "provider_id": item.provider_id,
+                    "record_sha256": item.raw_sha256,
+                }
                 for item in rows
             ]
             for key, rows in sorted(groups.items())
@@ -110,17 +112,19 @@ def report_markdown(data: dict[str, Any]) -> str:
         "",
     ]
     for batch in data["batches"]:
-        rows.extend([
-            f"## {batch['provider']} — {batch['kind']}",
-            "",
-            f"Query: {batch['query']}",
-            f"Completeness: **{batch['completeness']}**",
-            f"Retrieved: {batch['retrieved_total']}",
-            f"Reported total: {batch['reported_total']}",
-            f"Failure: {batch['failure_reason'] or 'none'}",
-            f"Next cursor: {batch['next_cursor'] or 'none'}",
-            "",
-        ])
+        rows.extend(
+            [
+                f"## {batch['provider']} — {batch['kind']}",
+                "",
+                f"Query: {batch['query']}",
+                f"Completeness: **{batch['completeness']}**",
+                f"Retrieved: {batch['retrieved_total']}",
+                f"Reported total: {batch['reported_total']}",
+                f"Failure: {batch['failure_reason'] or 'none'}",
+                f"Next cursor: {batch['next_cursor'] or 'none'}",
+                "",
+            ]
+        )
         for entry in batch["items"]:
             name = entry["title"] or "(title not supplied)"
             rows.append(
@@ -128,12 +132,14 @@ def report_markdown(data: dict[str, Any]) -> str:
                 f"[{entry['provider']}:{entry['provider_id']}]"
             )
         rows.append("")
-    rows.extend([
-        "## Limitations",
-        "",
-        "- A missing DOI or provider result does not prove that a work is undiscoverable.",
-        "- DOI matching never silently merges source-specific title, author, date or counts.",
-        "- Truncated or failed pages remain PARTIAL or UNKNOWN with explicit failure metadata.",
-        "",
-    ])
+    rows.extend(
+        [
+            "## Limitations",
+            "",
+            "- A missing DOI or provider result does not prove that a work is undiscoverable.",
+            "- DOI matching never silently merges source-specific title, author, date or counts.",
+            "- Truncated or failed pages remain PARTIAL or UNKNOWN with explicit failure metadata.",
+            "",
+        ]
+    )
     return "\n".join(rows)

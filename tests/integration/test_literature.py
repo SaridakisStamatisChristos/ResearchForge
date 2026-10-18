@@ -70,14 +70,14 @@ def invoke(handler: Any, operation: str = "lookup", **opts: Any) -> RetrievalBat
     async def execute() -> RetrievalBatch:
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
             provider: Any = (
-                OpenAlexProvider(client=client) if opts.pop("provider", "crossref") == "openalex"
+                OpenAlexProvider(client=client)
+                if opts.pop("provider", "crossref") == "openalex"
                 else CrossrefProvider(client=client)
             )
             if operation == "lookup":
                 return await provider.lookup_identifier("10.1234/example")
-            return await provider.search(
-                LiteratureQuery(text="dynamic shortest paths", **opts)
-            )
+            return await provider.search(LiteratureQuery(text="dynamic shortest paths", **opts))
+
     return asyncio.run(execute())
 
 
@@ -194,9 +194,7 @@ def test_openalex_cursor_pagination_and_limit_is_partial() -> None:
         assert cursor == "cursor-two"
         return oa_response([item], 4, "cursor-three")
 
-    batch = invoke(
-        handler, "search", provider="openalex", page_size=1, limit=2, max_pages=2
-    )
+    batch = invoke(handler, "search", provider="openalex", page_size=1, limit=2, max_pages=2)
     assert batch.completeness == "PARTIAL"
     assert batch.retrieved_total == 2
     assert batch.next_cursor == "cursor-three"
@@ -208,7 +206,10 @@ def test_openalex_cursor_pagination_and_limit_is_partial() -> None:
 def test_openalex_repeated_cursor_fails_closed() -> None:
     batch = invoke(
         lambda _: oa_response([openalex_item()], 9, "*"),
-        "search", provider="openalex", page_size=1, max_pages=3,
+        "search",
+        provider="openalex",
+        page_size=1,
+        max_pages=3,
     )
     assert batch.completeness == "PARTIAL"
     assert batch.failure_reason == "CURSOR_CYCLE"
@@ -314,22 +315,55 @@ def test_archive_hash_replay_and_json_markdown_report(tmp_path: Path) -> None:
     assert "doi:10.1234/example" in data["canonical_groups"]
     assert "Crossref's own title" in report_markdown(data)
     cli = CliRunner()
-    report = cli.invoke(app, [
-        "literature", "report", "--search-id", ident, "--store", str(folder),
-        "--format", "json",
-    ])
+    report = cli.invoke(
+        app,
+        [
+            "literature",
+            "report",
+            "--search-id",
+            ident,
+            "--store",
+            str(folder),
+            "--format",
+            "json",
+        ],
+    )
     assert report.exit_code == 0, report.output
     assert json.loads(report.output)["canonical_groups"] == data["canonical_groups"]
     exported = tmp_path / "report.md"
-    assert cli.invoke(app, [
-        "literature", "report", "--search-id", ident, "--store", str(folder),
-        "--output", str(exported),
-    ]).exit_code == 0
+    assert (
+        cli.invoke(
+            app,
+            [
+                "literature",
+                "report",
+                "--search-id",
+                ident,
+                "--store",
+                str(folder),
+                "--output",
+                str(exported),
+            ],
+        ).exit_code
+        == 0
+    )
     assert exported.read_text() == report_markdown(data)
-    assert cli.invoke(app, [
-        "literature", "report", "--search-id", ident, "--store", str(folder),
-        "--output", str(exported),
-    ]).exit_code == 2
+    assert (
+        cli.invoke(
+            app,
+            [
+                "literature",
+                "report",
+                "--search-id",
+                ident,
+                "--store",
+                str(folder),
+                "--output",
+                str(exported),
+            ],
+        ).exit_code
+        == 2
+    )
 
 
 def test_archive_fails_tamper_detection_and_path_escape(tmp_path: Path) -> None:
@@ -347,10 +381,15 @@ def test_archive_fails_tamper_detection_and_path_escape(tmp_path: Path) -> None:
 
 def test_no_doi_does_not_merge_title_similarities() -> None:
     def first(request: httpx.Request) -> httpx.Response:
-        return oa_response([
-            {"id": "https://openalex.org/W1", "display_name": "Same title", "doi": None},
-            {"id": "https://openalex.org/W2", "display_name": "Same title", "doi": None},
-        ], 2, None)
+        return oa_response(
+            [
+                {"id": "https://openalex.org/W1", "display_name": "Same title", "doi": None},
+                {"id": "https://openalex.org/W2", "display_name": "Same title", "doi": None},
+            ],
+            2,
+            None,
+        )
+
     batch = invoke(first, "search", provider="openalex", limit=2)
     groups = group_by_doi([batch])
     assert len(groups) == 2
@@ -365,11 +404,21 @@ def test_mocked_cli_lookup_snapshot(tmp_path: Path) -> None:
         return [batch]
 
     with patch.object(cli, "run_lookup", side_effect=fake):
-        result = CliRunner().invoke(app, [
-            "literature", "lookup", "--doi", "10.1234/example",
-            "--sources", "crossref", "--allow-network", "--json",
-            "--store", str(tmp_path),
-        ])
+        result = CliRunner().invoke(
+            app,
+            [
+                "literature",
+                "lookup",
+                "--doi",
+                "10.1234/example",
+                "--sources",
+                "crossref",
+                "--allow-network",
+                "--json",
+                "--store",
+                str(tmp_path),
+            ],
+        )
     assert result.exit_code == 0, result.output
     result_json = json.loads(result.output)
     assert result_json["status"] == "OK"

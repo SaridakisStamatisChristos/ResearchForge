@@ -458,18 +458,18 @@ def skill_export(
         raise typer.Exit(code=3) from exc
 
 
-def _literature_output(
-    batches: list[Any], store: Path | None, as_json: bool
-) -> None:
+def _literature_output(batches: list[Any], store: Path | None, as_json: bool) -> None:
     data = snapshot(batches)
     if store is not None:
         data["search_id"] = store_snapshot(store, batches)
     incomplete = any(batch.completeness != "COMPLETE" for batch in batches)
     if as_json:
-        typer.echo(ResponseEnvelope(
-            status="UNKNOWN" if incomplete else "OK",
-            data=data,
-        ).model_dump_json(indent=2))
+        typer.echo(
+            ResponseEnvelope(
+                status="UNKNOWN" if incomplete else "OK",
+                data=data,
+            ).model_dump_json(indent=2)
+        )
     else:
         for batch in batches:
             typer.echo(
@@ -516,9 +516,7 @@ def literature_search(
     """Bounded, source-specific scholarly search with explicit network opt-in."""
     try:
         selected = parse_sources(sources)
-        search = LiteratureQuery.model_validate(
-            {"text": query, "kind": kind, "limit": limit}
-        )
+        search = LiteratureQuery.model_validate({"text": query, "kind": kind, "limit": limit})
         if kind == "authors" and "crossref" in selected:
             raise LiteratureInputError("Author search requires --sources openalex")
         if not allow_network:
