@@ -1,4 +1,5 @@
 """Evidence-closed PaperForge contract, offline demo, bibliography and CLI tests."""
+
 from __future__ import annotations
 
 import json
