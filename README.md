@@ -253,3 +253,14 @@ approved result. After reading the draft, admit it with
 append-only ledger; existing frozen metric, attempt-budget and sealed-final
 guards remain in force. See `docs/HYPOTHESIS_FORGE.md` for limitations and
 a complete walkthrough.
+
+## PR12 — PaperForge offline research manuscript draft
+
+`rf paper draft --input examples/paperforge/paper.example.json --format md`
+exports a labeled manuscript inventory without any external API. Exact
+`campaign_event` hashes can be supplied with `--campaign` for independently
+replayed final-evaluation measurements, while `--literature-store` reads
+already archived source-specific metadata. Unsupported claims and incomplete
+citations remain explicitly labeled; no invented bibliography or scientific
+superiority claims. See `docs/PAPERFORGE.md` for the complete evidence and
+CLI contract.
