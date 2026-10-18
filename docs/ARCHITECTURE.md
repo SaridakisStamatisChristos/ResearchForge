@@ -21,3 +21,11 @@ raw output references and append-only start/terminal attempt events. The
 `final` split remains sealed. A per-campaign OS file lock serializes execution
 and explicit recovery; an interrupted `ATTEMPT_STARTED` is never silently replayed.
 This is not a security sandbox and makes no statistical claims.
+
+PR05: `application/qualification.py` records hypotheses, exact candidate Git
+identities, and deterministic decisions as immutable event payloads. It uses the
+PR04 campaign OS lock to prevent concurrent registration/qualification races,
+and replays source event hashes and immutable CAS stdout before accepting a
+measured number. The frozen qualification gate is a repeated selection stage;
+the `final` split stays inaccessible. No autonomous hypothesis generator or
+statistical superiority claim is implemented in this PR.
