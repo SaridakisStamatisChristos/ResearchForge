@@ -191,6 +191,14 @@ class RunnerService:
                 del pending[event.subject_id]
         return pending
 
+    @staticmethod
+    def _sequence(ledger: EventLedger, campaign_id: str) -> int:
+        """A corrupt or absent sequence must not be silently coerced to zero."""
+        count = ledger.verify(campaign_id)["event_count"]
+        if not isinstance(count, int):
+            raise RunnerIntegrityError("Invalid ledger sequence")
+        return count
+
     @contextmanager
     def _lease(self) -> Iterator[None]:
         """Single runner/recovery writer; OS releases lock after an interrupted process."""
@@ -208,7 +216,7 @@ class RunnerService:
                     handle.write(b"0")
                     handle.flush()
                     handle.seek(0)
-                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                    getattr(msvcrt, "locking")(handle.fileno(), getattr(msvcrt, "LK_NBLCK"), 1)
             except (OSError, BlockingIOError) as exc:
                 raise ExecutionRefused(
                     "A runner or recovery operation already owns this campaign"
@@ -220,7 +228,7 @@ class RunnerService:
                     fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
                 else:
                     handle.seek(0)
-                    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+                    getattr(msvcrt, "locking")(handle.fileno(), getattr(msvcrt, "LK_UNLCK"), 1)
 
     def recover_unknown(self, *, approved: bool) -> list[str]:
         """Explicit operator adjudication. Never replay a possibly executed command."""
@@ -231,7 +239,7 @@ class RunnerService:
             pending = self._open_attempts(ledger, snapshot.campaign_id)
             ids: list[str] = []
             for attempt_id in pending:
-                sequence = int(ledger.verify(snapshot.campaign_id)["event_count"])
+                sequence = self._sequence(ledger, snapshot.campaign_id)
                 ledger.append_event(
                     snapshot.campaign_id,
                     sequence,
@@ -294,7 +302,7 @@ class RunnerService:
                     raise ExecutionRefused("Unknown or embedded argv placeholder")
             argv.append(replacements.get(token, token))
         cwd = Path(replacements[spec.cwd])
-        sequence = int(ledger.verify(snapshot.campaign_id)["event_count"])
+        sequence = self._sequence(ledger, snapshot.campaign_id)
         ledger.append_event(
             snapshot.campaign_id,
             sequence,
@@ -430,7 +438,7 @@ class RunnerService:
             "TIMED_OUT": "ATTEMPT_TIMED_OUT",
             "UNKNOWN": "ATTEMPT_UNKNOWN",
         }[status]
-        sequence = int(ledger.verify(snapshot.campaign_id)["event_count"])
+        sequence = self._sequence(ledger, snapshot.campaign_id)
         ledger.append_event(snapshot.campaign_id, sequence, event_type, attempt_id, payload)
         return {
             "attempt_id": attempt_id,
