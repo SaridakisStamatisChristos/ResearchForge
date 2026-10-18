@@ -11,7 +11,9 @@ import typer
 from pydantic import BaseModel, ValidationError
 
 from researchforge import __version__
+from researchforge.adapters.cas import ArtifactIntegrityError
 from researchforge.application.campaigns import CampaignService, FrozenStateError, ManifestError
+from researchforge.application.evidence import LedgerIntegrityError
 from researchforge.application.final import FinalService
 from researchforge.application.qualification import HypothesisSpec, QualificationService
 from researchforge.application.runner import (
@@ -54,6 +56,13 @@ from researchforge.literature_archive import (
     snapshot,
     store_snapshot,
 )
+from researchforge.paper import (
+    PaperInputError,
+    PaperIntegrityError,
+    build_paper,
+    read_paper_spec,
+    render_markdown,
+)
 from researchforge.portable_skills import (
     NAME as PORTABLE_SKILL_NAME,
 )
@@ -87,6 +96,8 @@ app.add_typer(skill_commands, name="skill")
 literature_commands = typer.Typer(help="Source-specific scholarly metadata retrieval.")
 app.add_typer(literature_commands, name="literature")
 app.add_typer(audit_commands, name="audit")
+paper_commands = typer.Typer(help="Offline evidence-backed scientific manuscript exports.")
+app.add_typer(paper_commands, name="paper")
 
 
 def version_callback(value: bool) -> None:
@@ -651,6 +662,41 @@ def literature_report(
     except (LiteratureArchiveError, LiteratureInputError, OSError) as exc:
         typer.echo(f"INVALID_INPUT: {exc}", err=True)
         raise typer.Exit(code=2) from exc
+
+
+@paper_commands.command("draft")
+def paper_draft(
+    input_file: Annotated[Path, typer.Option("--input")],
+    campaign_path: Annotated[Path | None, typer.Option("--campaign")] = None,
+    literature_store: Annotated[Path | None, typer.Option("--literature-store")] = None,
+    paper_format: Annotated[str, typer.Option("--format")] = "md",
+    output: Annotated[Path | None, typer.Option("--output")] = None,
+) -> None:
+    """Generate an offline manuscript with explicit unsupported-evidence annotations."""
+    try:
+        spec = read_paper_spec(input_file)
+        document = build_paper(spec, campaign=campaign_path, literature_store=literature_store)
+        if paper_format == "md":
+            rendered = render_markdown(document)
+        elif paper_format == "json":
+            rendered = json.dumps(document, sort_keys=True, indent=2) + "\n"
+        else:
+            raise PaperInputError("Choose --format md or json")
+        if output is None:
+            typer.echo(rendered, nl=False)
+        else:
+            with output.open("x", encoding="utf-8") as handle:
+                handle.write(rendered)
+            typer.echo(str(output))
+    except PaperIntegrityError as exc:
+        typer.echo(f"CORRUPT: {exc}", err=True)
+        raise typer.Exit(code=6) from exc
+    except (PaperInputError, ValidationError, OSError, ValueError) as exc:
+        typer.echo(f"INVALID_INPUT: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    except (RunnerIntegrityError, LedgerIntegrityError, ArtifactIntegrityError) as exc:
+        typer.echo(f"CORRUPT: {exc}", err=True)
+        raise typer.Exit(code=6) from exc
 
 
 if __name__ == "__main__":

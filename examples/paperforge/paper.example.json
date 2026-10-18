@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "title": "Example research evidence inventory (incomplete until verified events supplied)",
+  "authors": [],
+  "claims": {
+    "schema_version": "1.0",
+    "claims": [
+      {
+        "claim_id": "unlinked-final",
+        "text": "The candidate meets a predeclared final threshold on the toy dataset",
+        "scope": "Only the frozen offline toy campaign",
+        "kind": "final_status",
+        "expected": "FINAL_SUPPORTED",
+        "subject_id": null,
+        "evidence": []
+      }
+    ]
+  }
+}
