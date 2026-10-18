@@ -251,6 +251,7 @@ def run_cases(plan_file: Path, output: Path, *, approved: bool) -> dict[str, Any
     body = {
         "schema_version": "1.0",
         "provenance": "EXECUTED_TRUSTED_LOCAL",
+        "execution_root": str(output.resolve()),
         "plan_sha256": digest_bytes(_safe_file(output, "plan.json")),
         "rows": rows,
     }
@@ -283,9 +284,12 @@ def verify_bundle(folder: Path) -> dict[str, Any]:
         result = _parse_json(body)
         if (
             not isinstance(result, dict)
-            or set(result) != {"schema_version", "provenance", "plan_sha256", "rows"}
+            or set(result)
+            != {"schema_version", "provenance", "execution_root", "plan_sha256", "rows"}
             or result["schema_version"] != "1.0"
             or result["provenance"] != "EXECUTED_TRUSTED_LOCAL"
+            or not isinstance(result["execution_root"], str)
+            or not Path(result["execution_root"]).is_absolute()
             or result["plan_sha256"] != digest_bytes(plan_bytes)
             or not isinstance(result["rows"], list)
             or len(result["rows"]) != len(plan.cases) * 2
@@ -330,7 +334,7 @@ def verify_bundle(folder: Path) -> dict[str, Any]:
                 if row is None:
                     raise CaseBundleError("Missing trial for case/tool pair")
                 base = f"logs/{item.case_id}/{tool.name}"
-                expected_input = (folder / "inputs" / f"{item.case_id}.{suffix}").resolve()
+                expected_input = Path(result["execution_root"]) / "inputs" / f"{item.case_id}.{suffix}"
                 expected_argv = [
                     str(expected_input)
                     if word == "{input}"
