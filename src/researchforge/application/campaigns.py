@@ -58,8 +58,7 @@ def _git(root: Path, *args: str) -> str:
     try:
         result = subprocess.run(
             ["git", "-C", str(root), *args],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             check=True,
             timeout=10,
         )
@@ -155,7 +154,9 @@ class CampaignService:
         created = cls(output)
         created.manifest_path.write_bytes(raw)
         created.origin_path.write_bytes(
-            canonical_json({"manifest_origin": str(source.parent), "manifest_sha256": digest_bytes(raw)})
+            canonical_json(
+                {"manifest_origin": str(source.parent), "manifest_sha256": digest_bytes(raw)}
+            )
         )
         return created
 
@@ -179,7 +180,10 @@ class CampaignService:
         """Read-only resolve all inputs; never store a decision or mutate source."""
         manifest, evaluator_root, raw = self._manifest()
         repository = _repository_path(manifest.base.repository)
-        commit = _git(repository, "rev-parse", "--verify", "--end-of-options", f"{manifest.base.commit}^{{commit}}")
+        commit = _git(
+            repository, "rev-parse", "--verify", "--end-of-options",
+            f"{manifest.base.commit}^{{commit}}"
+        )
         tree = _git(repository, "rev-parse", "--verify", "--end-of-options", f"{commit}^{{tree}}")
         if len(commit) not in (40, 64) or len(tree) not in (40, 64):
             raise ManifestError("Git returned an invalid full OID")
@@ -200,7 +204,10 @@ class CampaignService:
                 case_count=len(ids)
             )
         # Require evaluator script inside known source. Shell commands are not run in PR03.
-        if not any(token.endswith(".py") and token in eval_sources for token in manifest.evaluation.argv):
+        if not any(
+            token.endswith(".py") and token in eval_sources
+            for token in manifest.evaluation.argv
+        ):
             raise ManifestError("Evaluator argv must name a fingerprinted Python source file")
         environment = {"python": sys.version.split()[0], "platform": platform.system()}
         return FrozenManifest(
