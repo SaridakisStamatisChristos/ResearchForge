@@ -289,3 +289,21 @@ wrong answers; they are not claimed as external empirical research. The
 NetworkX case study demonstrates reproducible correctness and integration,
 **not statistically established performance superiority**. See
 `docs/CASE_STUDIES.md`.
+
+## PR14 — real subprocess paired agent study harness
+
+PR14 adds frozen control/full/leave-one-component-out agent evaluations, deterministic
+paired scheduling, pinned tools/context, independent answer scoring, raw evidence hashes,
+offline replay, and explicit null/negative results. It **does not claim observed LLM
+uplift from the bundled mechanical fixture**. To run the real 32-process offline
+integration sample:
+
+~~~bash
+python -m researchforge.uplift_fixture_demo --output /tmp/rf-pr14-demo
+rf uplift verify --bundle /tmp/rf-pr14-demo
+rf uplift report --bundle /tmp/rf-pr14-demo --format md
+~~~
+
+External trusted agent CLIs are supported using an approved fixed-task plan via
+**rf uplift run --plan PATH --output NEW_PATH --approve-trusted-agent**.
+See [the PR14 protocol and caveats](docs/AGENT_UPLIFT.md).
