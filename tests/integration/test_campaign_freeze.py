@@ -73,7 +73,9 @@ def test_freeze_once_and_replay(source: tuple[Path, Path], tmp_path: Path) -> No
     assert not (repository / ".researchforge").exists()
 
 
-def test_overlap_is_rejected_without_frozen_event(source: tuple[Path, Path], tmp_path: Path) -> None:
+def test_overlap_is_rejected_without_frozen_event(
+    source: tuple[Path, Path], tmp_path: Path
+) -> None:
     manifest, _ = source
     q = manifest.parent / "splits" / "qualification.json"
     q.write_text('{"cases":[{"id":"D"}]}')
