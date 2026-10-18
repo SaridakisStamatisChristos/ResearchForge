@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 from pydantic import BaseModel, ValidationError
@@ -27,6 +28,20 @@ from researchforge.domain.models import (
     EvaluationResult,
     EvidenceEvent,
     FrozenManifest,
+)
+from researchforge.literature import (
+    LiteratureInputError,
+    LiteratureQuery,
+    parse_sources,
+    run_lookup,
+    run_search,
+)
+from researchforge.literature_archive import (
+    LiteratureArchiveError,
+    read_snapshot,
+    report_markdown,
+    snapshot,
+    store_snapshot,
 )
 from researchforge.portable_skills import (
     NAME as PORTABLE_SKILL_NAME,
@@ -57,6 +72,8 @@ demo_commands = typer.Typer(help="Real, fully offline trusted-toy demonstration.
 app.add_typer(demo_commands, name="demo")
 skill_commands = typer.Typer(help="Validate or explicitly export portable Agent Skills.")
 app.add_typer(skill_commands, name="skill")
+literature_commands = typer.Typer(help="Source-specific scholarly metadata retrieval.")
+app.add_typer(literature_commands, name="literature")
 
 
 def version_callback(value: bool) -> None:
@@ -439,6 +456,103 @@ def skill_export(
     except (PortableSkillError, OSError) as exc:
         typer.echo(f"REFUSED: {exc}", err=True)
         raise typer.Exit(code=3) from exc
+
+
+def _literature_output(batches: list[Any], store: Path | None, as_json: bool) -> None:
+    data = snapshot(batches)
+    if store is not None:
+        data["search_id"] = store_snapshot(store, batches)
+    incomplete = any(batch.completeness != "COMPLETE" for batch in batches)
+    if as_json:
+        typer.echo(
+            ResponseEnvelope(
+                status="UNKNOWN" if incomplete else "OK",
+                data=data,
+            ).model_dump_json(indent=2)
+        )
+    else:
+        for batch in batches:
+            typer.echo(
+                f"{batch.provider}: {batch.completeness}, "
+                f"{batch.retrieved_total} records; "
+                f"reason={batch.failure_reason or 'none'}"
+            )
+        if store is not None:
+            typer.echo(f"search_id={data['search_id']}")
+    if incomplete:
+        raise typer.Exit(code=5)
+
+
+@literature_commands.command("lookup")
+def literature_lookup(
+    doi: Annotated[str, typer.Option("--doi")],
+    sources: Annotated[str, typer.Option("--sources")] = "crossref,openalex",
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+    allow_network: Annotated[bool, typer.Option("--allow-network")] = False,
+    store: Annotated[Path | None, typer.Option("--store")] = None,
+) -> None:
+    """Resolve a DOI via named sources, with explicit live-network approval."""
+    try:
+        selected = parse_sources(sources)
+        if not allow_network:
+            raise LiteratureInputError("Live literature retrieval requires --allow-network")
+        results = asyncio.run(run_lookup(doi, sources=selected, allow_network=True))
+        _literature_output(results, store, as_json)
+    except (LiteratureInputError, LiteratureArchiveError, OSError) as exc:
+        typer.echo(f"INVALID_INPUT: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+
+@literature_commands.command("search")
+def literature_search(
+    query: Annotated[str, typer.Option("--query")],
+    sources: Annotated[str, typer.Option("--sources")] = "openalex",
+    limit: Annotated[int, typer.Option("--limit")] = 20,
+    kind: Annotated[str, typer.Option("--kind")] = "works",
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+    allow_network: Annotated[bool, typer.Option("--allow-network")] = False,
+    store: Annotated[Path | None, typer.Option("--store")] = None,
+) -> None:
+    """Bounded, source-specific scholarly search with explicit network opt-in."""
+    try:
+        selected = parse_sources(sources)
+        search = LiteratureQuery.model_validate({"text": query, "kind": kind, "limit": limit})
+        if kind == "authors" and "crossref" in selected:
+            raise LiteratureInputError("Author search requires --sources openalex")
+        if not allow_network:
+            raise LiteratureInputError("Live literature retrieval requires --allow-network")
+        results = asyncio.run(run_search(search, sources=selected, allow_network=True))
+        _literature_output(results, store, as_json)
+    except (LiteratureInputError, LiteratureArchiveError, OSError, ValidationError) as exc:
+        typer.echo(f"INVALID_INPUT: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+
+@literature_commands.command("report")
+def literature_report(
+    search_id: Annotated[str, typer.Option("--search-id")],
+    store: Annotated[Path, typer.Option("--store")],
+    report_format: Annotated[str, typer.Option("--format")] = "md",
+    output: Annotated[Path | None, typer.Option("--output")] = None,
+) -> None:
+    """Offline, integrity-checked source report; never retrieve live data."""
+    try:
+        data = read_snapshot(store, search_id)
+        if report_format == "json":
+            formatted = json.dumps(data, sort_keys=True, indent=2) + "\n"
+        elif report_format == "md":
+            formatted = report_markdown(data)
+        else:
+            raise LiteratureInputError("Choose --format md or json")
+        if output is None:
+            typer.echo(formatted, nl=False)
+        else:
+            with output.open("x", encoding="utf-8") as handle:
+                handle.write(formatted)
+            typer.echo(str(output))
+    except (LiteratureArchiveError, LiteratureInputError, OSError) as exc:
+        typer.echo(f"INVALID_INPUT: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
 
 
 if __name__ == "__main__":
