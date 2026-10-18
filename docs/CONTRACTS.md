@@ -31,3 +31,15 @@ committed phantom events and may leave identifiable orphan blobs. No automatic c
 of the original evaluator/split inputs. The SHA-256 lock bytes are bound by a
 `CAMPAIGN_FROZEN` event. Freezing is idempotent for unchanged inputs and recovers a
 lock-only crash without claiming evaluator success. Changes to frozen inputs are refused.
+
+## PR04 executor and evidence
+
+`rf run evaluate` requires `--approve-trusted-local`. Only `dev` and
+`qualification` can run, never `final`. Each attempt has an immutable
+`ATTEMPT_STARTED` event with exact command, worktree and frozen hashes, followed
+by a terminal `ATTEMPT_SUCCEEDED`, `ATTEMPT_FAILED`, `ATTEMPT_TIMED_OUT`, or
+`ATTEMPT_UNKNOWN`. The terminal payload contains raw stdout/stderr CAS references
+and a validated result only on success. An orphan start requires explicit
+`rf run recover --mark-unknown`. Unknown process outcomes are not retried
+automatically. Success proves only that the trusted evaluator produced a
+contract-matching result in this local environment.
