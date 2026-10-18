@@ -1,0 +1,1 @@
+"""Concrete local adapter implementations."""
