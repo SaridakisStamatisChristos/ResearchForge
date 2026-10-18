@@ -334,7 +334,9 @@ def verify_bundle(folder: Path) -> dict[str, Any]:
                 if row is None:
                     raise CaseBundleError("Missing trial for case/tool pair")
                 base = f"logs/{item.case_id}/{tool.name}"
-                expected_input = Path(result["execution_root"]) / "inputs" / f"{item.case_id}.{suffix}"
+                expected_input = (
+                    Path(result["execution_root"]) / "inputs" / f"{item.case_id}.{suffix}"
+                )
                 expected_argv = [
                     str(expected_input)
                     if word == "{input}"
