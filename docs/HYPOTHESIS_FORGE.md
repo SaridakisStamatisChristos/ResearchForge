@@ -32,7 +32,10 @@ An explicit approval event is appended **before** the existing
 `HYPOTHESIS_PROPOSED` event. Recovery can retry after an interrupted append
 without generating an unapproved hypothesis. The service checks the frozen
 metric/direction, hypothesis parent and campaign budget, rejects conflicting
-IDs, and refuses admission after final nomination. Approval itself does not
+IDs, and refuses admission after final nomination. The trusted runner also
+enforces the approved per-hypothesis attempt cap across all associated
+candidate IDs, counting each started dev/qualification attempt (including
+failed or unknown attempts); no reset is allowed by changing candidate IDs. Approval itself does not
 execute evaluators, select a candidate or touch the final split.
 
 ### Optional model drafts
