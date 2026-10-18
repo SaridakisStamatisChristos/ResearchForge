@@ -146,7 +146,7 @@ def _first_title(obj: Any) -> str | None:
 def _year(value: Any) -> int | None:
     if isinstance(value, bool) or not isinstance(value, int) or not 1400 <= value <= 2200:
         return None
-    return value
+    return cast(int, value)
 
 
 def _provider_doi(raw: Any) -> str | None:
