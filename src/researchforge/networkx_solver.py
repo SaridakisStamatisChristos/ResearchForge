@@ -29,9 +29,7 @@ def solve(input_path: Path, algorithm: str) -> dict[str, int | None]:
     if algorithm == "dijkstra":
         measured = nx.single_source_dijkstra_path_length(graph, source, weight="weight")
     elif algorithm == "bellman-ford":
-        measured = nx.single_source_bellman_ford_path_length(
-            graph, source, weight="weight"
-        )
+        measured = nx.single_source_bellman_ford_path_length(graph, source, weight="weight")
     else:
         raise ValueError("Choose dijkstra or bellman-ford")
     return {node: int(measured[node]) if node in measured else None for node in nodes}
