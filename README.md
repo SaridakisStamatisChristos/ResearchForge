@@ -42,3 +42,16 @@ print(ledger.verify("example"))
 ```
 
 This verifies stored content integrity, **not** that research measurements were executed.
+
+## PR03 local campaign freeze
+
+```bash
+rf campaign init --manifest ./examples/my-campaign.json --output /tmp/my-rf-campaign
+rf campaign validate --campaign /tmp/my-rf-campaign
+rf campaign freeze --campaign /tmp/my-rf-campaign
+rf campaign inspect --campaign /tmp/my-rf-campaign --json
+```
+
+These commands resolve full local Git OIDs, evaluator Python file digests, disjoint split IDs,
+policy and environment fingerprints. The lock cannot be silently overwritten. No evaluator
+command is executed by PR03, and no benchmark score is produced.

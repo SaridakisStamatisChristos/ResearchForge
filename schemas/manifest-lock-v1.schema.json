@@ -1,0 +1,114 @@
+{
+  "$defs": {
+    "FrozenSplit": {
+      "additionalProperties": false,
+      "properties": {
+        "case_count": {
+          "exclusiveMinimum": 0,
+          "title": "Case Count",
+          "type": "integer"
+        },
+        "relative_path": {
+          "minLength": 1,
+          "title": "Relative Path",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "dev",
+            "qualification",
+            "final"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "relative_path",
+        "sha256",
+        "case_count"
+      ],
+      "title": "FrozenSplit",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "campaign_id": {
+      "minLength": 1,
+      "title": "Campaign Id",
+      "type": "string"
+    },
+    "environment_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Environment Sha256",
+      "type": "string"
+    },
+    "evaluator_files": {
+      "additionalProperties": {
+        "pattern": "^[a-f0-9]{64}$",
+        "type": "string"
+      },
+      "minProperties": 1,
+      "title": "Evaluator Files",
+      "type": "object"
+    },
+    "evaluator_source_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Evaluator Source Sha256",
+      "type": "string"
+    },
+    "manifest_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Manifest Sha256",
+      "type": "string"
+    },
+    "policy_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Policy Sha256",
+      "type": "string"
+    },
+    "repository_commit": {
+      "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})$",
+      "title": "Repository Commit",
+      "type": "string"
+    },
+    "repository_tree": {
+      "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})$",
+      "title": "Repository Tree",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "splits": {
+      "additionalProperties": {
+        "$ref": "#/$defs/FrozenSplit"
+      },
+      "title": "Splits",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "campaign_id",
+    "manifest_sha256",
+    "repository_commit",
+    "repository_tree",
+    "evaluator_source_sha256",
+    "evaluator_files",
+    "environment_sha256",
+    "policy_sha256",
+    "splits"
+  ],
+  "title": "FrozenManifest",
+  "type": "object"
+}

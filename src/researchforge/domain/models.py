@@ -152,3 +152,31 @@ class EvaluationResult(StrictModel):
         if any(isinstance(v, float) and not isfinite(v) for v in self.details.values()):
             raise ValueError("details numbers must be finite")
         return self
+
+
+class FrozenSplit(StrictModel):
+    role: SplitRole
+    relative_path: str = Field(min_length=1)
+    sha256: Digest
+    case_count: int = Field(gt=0)
+
+
+class FrozenManifest(StrictModel):
+    schema_version: Literal["1.0"]
+    campaign_id: str = Field(min_length=1)
+    manifest_sha256: Digest
+    repository_commit: CommitOID
+    repository_tree: CommitOID
+    evaluator_source_sha256: Digest
+    evaluator_files: dict[str, Digest] = Field(min_length=1)
+    environment_sha256: Digest
+    policy_sha256: Digest
+    splits: dict[str, FrozenSplit]
+
+    @model_validator(mode="after")
+    def requires_three_roles(self) -> FrozenManifest:
+        if set(self.splits) != {"dev", "qualification", "final"}:
+            raise ValueError("Frozen manifest must contain all three split roles")
+        if any(split.role != name for name, split in self.splits.items()):
+            raise ValueError("Frozen split name does not match role")
+        return self
