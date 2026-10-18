@@ -68,10 +68,7 @@ class FinalService:
         for following, payload in recorded:
             if following.sequence > event.sequence and (
                 following.event_type in forbidden
-                or (
-                    following.event_type == "ATTEMPT_STARTED"
-                    and payload.get("role") != "final"
-                )
+                or (following.event_type == "ATTEMPT_STARTED" and payload.get("role") != "final")
             ):
                 raise RunnerIntegrityError("Candidate search modified after final nomination")
         if (
@@ -84,12 +81,24 @@ class FinalService:
             or plan.get("allow_equal") != manifest.qualification_policy.allow_equal
             or len(selections) != 1
             or selections[0].sequence >= event.sequence
-            or set(plan) != {
-                "candidate_id", "candidate_commit", "candidate_tree",
-                "baseline_commit", "baseline_tree", "manifest_sha256",
-                "policy_sha256", "split_sha256", "selection_event_sha256",
-                "qualification_attempt_exposure", "metric", "direction",
-                "threshold", "allow_equal", "method", "arms",
+            or set(plan)
+            != {
+                "candidate_id",
+                "candidate_commit",
+                "candidate_tree",
+                "baseline_commit",
+                "baseline_tree",
+                "manifest_sha256",
+                "policy_sha256",
+                "split_sha256",
+                "selection_event_sha256",
+                "qualification_attempt_exposure",
+                "metric",
+                "direction",
+                "threshold",
+                "allow_equal",
+                "method",
+                "arms",
             }
         ):
             raise RunnerIntegrityError("Final plan changes registered identities or policy")

@@ -262,8 +262,9 @@ def test_final_plan_refuses_forged_threshold(
     _prepare(selection, runner)
     original = FinalService._event
 
-    def forge(ledger: EventLedger, camp: str, kind: str, ident: str,
-              payload: dict[str, object]) -> object:
+    def forge(
+        ledger: EventLedger, camp: str, kind: str, ident: str, payload: dict[str, object]
+    ) -> object:
         if kind == "FINAL_PLAN_FROZEN":
             payload = {**payload, "threshold": 0.0}
         return original(ledger, camp, kind, ident, payload)
@@ -276,10 +277,6 @@ def test_final_plan_refuses_forged_threshold(
 
 def test_stats_cli_refuses_duplicate_ids(tmp_path: Path) -> None:
     path = tmp_path / "bad.json"
-    path.write_text(
-        '{"baseline":{"same":1,"same":2},"candidate":{"same":1},"direction":"min"}'
-    )
-    result = CliRunner().invoke(app, [
-        "stats", "paired", "--file", str(path), "--seed", "23"
-    ])
+    path.write_text('{"baseline":{"same":1,"same":2},"candidate":{"same":1},"direction":"min"}')
+    result = CliRunner().invoke(app, ["stats", "paired", "--file", str(path), "--seed", "23"])
     assert result.exit_code == 2
