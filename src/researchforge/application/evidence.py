@@ -18,7 +18,7 @@ from pydantic import ValidationError
 
 from researchforge.adapters.cas import ArtifactIntegrityError, FileSystemCAS
 from researchforge.adapters.sqlite.connection import open_ledger_db
-from researchforge.domain.models import ArtifactRef, EventActor, EvidenceEvent
+from researchforge.domain.models import EventActor, EvidenceEvent
 from researchforge.domain.serialization import canonical_json, digest_bytes
 
 
@@ -99,7 +99,14 @@ class EventLedger:
                 "INSERT INTO events "
                 "(campaign_id,sequence,event_id,event_json,payload_sha256,event_sha256) "
                 "VALUES (?,?,?,?,?,?)",
-                (campaign_id, sequence + 1, str(event.event_id), serialized, ref.sha256, event_hash),
+                (
+                    campaign_id,
+                    sequence + 1,
+                    str(event.event_id),
+                    serialized,
+                    ref.sha256,
+                    event_hash,
+                ),
             )
             if inject_failure is not None:
                 inject_failure("before_commit")
@@ -164,6 +171,7 @@ class EventLedger:
         """Read-only inventory for later recovery tooling; never sweep without authorization."""
         with self._connect() as connection:
             references = {
-                str(row[0]) for row in connection.execute("SELECT DISTINCT payload_sha256 FROM events")
+                str(row[0])
+                for row in connection.execute("SELECT DISTINCT payload_sha256 FROM events")
             }
         return self.cas.all_digests() - references
