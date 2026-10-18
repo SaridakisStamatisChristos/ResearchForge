@@ -208,8 +208,7 @@ def _bibliography(
                     }
                 )
     unique = {
-        (row["snapshot_sha256"], row["record_sha256"], row["provider_id"]): row
-        for row in rows
+        (row["snapshot_sha256"], row["record_sha256"], row["provider_id"]): row for row in rows
     }
     return [unique[key] for key in sorted(unique)]
 
@@ -270,10 +269,7 @@ def build_paper(
                 "wording_reviewed": False,
             }
         )
-    dedup = {
-        (r["snapshot_sha256"], r["record_sha256"], r["provider_id"]): r
-        for r in bibliography
-    }
+    dedup = {(r["snapshot_sha256"], r["record_sha256"], r["provider_id"]): r for r in bibliography}
     bibliography = [dedup[key] for key in sorted(dedup)]
     doc = {
         "schema_version": "1.0",
@@ -314,19 +310,27 @@ def _safe(value: Any) -> str:
 
 def render_markdown(paper: dict[str, Any]) -> str:
     rows = [
-        "# " + _safe(paper["title"]), "",
-        "**Machine-generated evidence inventory; not a publication-ready manuscript.**", "",
-        "Authors (operator-supplied): " + (
-            ", ".join(_safe(name) for name in paper["authors"]) or "not supplied"
-        ), "",
-        "## Methods and provenance", "",
+        "# " + _safe(paper["title"]),
+        "",
+        "**Machine-generated evidence inventory; not a publication-ready manuscript.**",
+        "",
+        "Authors (operator-supplied): "
+        + (", ".join(_safe(name) for name in paper["authors"]) or "not supplied"),
+        "",
+        "## Methods and provenance",
+        "",
         "ResearchForge's offline ResearchAuditor replayed supplied exact evidence hashes. "
         "Final measurements below are included only for independently replayed final predicates. "
-        "The operator's free-text claims were not checked for semantic accuracy.", "",
-        "Campaign: " + _safe(paper["campaign_id"]), "",
-        "Ledger head: `" + _safe(paper["ledger_chain_head"]) + "`", "",
-        "Document digest: `" + _safe(paper["content_sha256"]) + "`", "",
-        "## Final-evaluation results (frozen dataset only)", "",
+        "The operator's free-text claims were not checked for semantic accuracy.",
+        "",
+        "Campaign: " + _safe(paper["campaign_id"]),
+        "",
+        "Ledger head: `" + _safe(paper["ledger_chain_head"]) + "`",
+        "",
+        "Document digest: `" + _safe(paper["content_sha256"]) + "`",
+        "",
+        "## Final-evaluation results (frozen dataset only)",
+        "",
     ]
     if not paper["measurements"]:
         rows.extend(["**MISSING / INCOMPLETE:** No fully verified final measurement table.", ""])
@@ -334,62 +338,112 @@ def render_markdown(paper: dict[str, Any]) -> str:
         base, candidate = item["baseline"], item["candidate"]
         rows.extend(
             [
-                "### " + _safe(item["claim_id"]), "",
+                "### " + _safe(item["claim_id"]),
+                "",
                 "| Metric | Baseline | Candidate | Improvement |",
                 "| --- | ---: | ---: | ---: |",
-                "| " + _safe(item["metric"]) + " (" + _safe(base["unit"]) + ") | "
-                + _safe(base["metric_value"]) + " | " + _safe(candidate["metric_value"])
-                + " | " + _safe(item["improvement"]) + " |",
+                "| "
+                + _safe(item["metric"])
+                + " ("
+                + _safe(base["unit"])
+                + ") | "
+                + _safe(base["metric_value"])
+                + " | "
+                + _safe(candidate["metric_value"])
+                + " | "
+                + _safe(item["improvement"])
+                + " |",
                 "",
                 "Predeclared threshold: " + _safe(item["minimum_improvement"]) + "; "
-                "direction: " + _safe(item["direction"]) + "; cases: "
-                + _safe(base["sample_count"]) + "; status: **" + _safe(item["status"]) + "**.", "",
-                "Baseline commit: `" + _safe(item["baseline_commit"]) + "`", "",
-                "Candidate commit: `" + _safe(item["candidate_commit"]) + "`", "",
-                "Frozen split SHA-256: `" + _safe(item["split_sha256"]) + "`", "",
-                "Frozen manifest SHA-256: `" + _safe(item["manifest_sha256"]) + "`", "",
-                "Selection exposure: " + _safe(item["selection_exposure"]), "",
-                "Baseline event/stdout: `" + _safe(base["terminal_event_sha256"]) + "` / `"
-                + _safe(base["stdout_sha256"]) + "`", "",
-                "Candidate event/stdout: `" + _safe(candidate["terminal_event_sha256"])
-                + "` / `" + _safe(candidate["stdout_sha256"]) + "`", "",
-                "Uncertainty: " + _safe(item["uncertainty"]) + ".", "",
+                "direction: "
+                + _safe(item["direction"])
+                + "; cases: "
+                + _safe(base["sample_count"])
+                + "; status: **"
+                + _safe(item["status"])
+                + "**.",
+                "",
+                "Baseline commit: `" + _safe(item["baseline_commit"]) + "`",
+                "",
+                "Candidate commit: `" + _safe(item["candidate_commit"]) + "`",
+                "",
+                "Frozen split SHA-256: `" + _safe(item["split_sha256"]) + "`",
+                "",
+                "Frozen manifest SHA-256: `" + _safe(item["manifest_sha256"]) + "`",
+                "",
+                "Selection exposure: " + _safe(item["selection_exposure"]),
+                "",
+                "Baseline event/stdout: `"
+                + _safe(base["terminal_event_sha256"])
+                + "` / `"
+                + _safe(base["stdout_sha256"])
+                + "`",
+                "",
+                "Candidate event/stdout: `"
+                + _safe(candidate["terminal_event_sha256"])
+                + "` / `"
+                + _safe(candidate["stdout_sha256"])
+                + "`",
+                "",
+                "Uncertainty: " + _safe(item["uncertainty"]) + ".",
+                "",
             ]
         )
     rows.extend(["## Submitted claims and missing evidence", ""])
     for item in paper["claims"]:
-        rows.extend([
-            "### " + _safe(item["claim_id"]) + " — " + _safe(item["status"]), "",
-            "Operator-supplied wording (NOT semantically verified): "
-            + _safe(item["text"]), "",
-            "Scope: " + _safe(item["scope"]), "",
-            "Use: **" + _safe(item["publication_use"]) + "**", "",
-            "Linked evidence: " + (
-                ", ".join("`" + _safe(x) + "`" for x in item["used_evidence"]) or "none"
-            ), "",
-            "Missing evidence: " + (
-                ", ".join(_safe(x) for x in item["missing_evidence"]) or "none"
-            ), "",
-            "Conflicts: " + (", ".join(_safe(x) for x in item["conflicts"]) or "none"),
-            "", "Interpretation: " + _safe(item["note"]), "",
-        ])
+        rows.extend(
+            [
+                "### " + _safe(item["claim_id"]) + " — " + _safe(item["status"]),
+                "",
+                "Operator-supplied wording (NOT semantically verified): " + _safe(item["text"]),
+                "",
+                "Scope: " + _safe(item["scope"]),
+                "",
+                "Use: **" + _safe(item["publication_use"]) + "**",
+                "",
+                "Linked evidence: "
+                + (", ".join("`" + _safe(x) + "`" for x in item["used_evidence"]) or "none"),
+                "",
+                "Missing evidence: "
+                + (", ".join(_safe(x) for x in item["missing_evidence"]) or "none"),
+                "",
+                "Conflicts: " + (", ".join(_safe(x) for x in item["conflicts"]) or "none"),
+                "",
+                "Interpretation: " + _safe(item["note"]),
+                "",
+            ]
+        )
     rows.extend(["## Source-specific bibliographic observations", ""])
     if not paper["bibliography"]:
         rows.extend(["**MISSING:** No verified source snapshot entries supplied.", ""])
     for entry in paper["bibliography"]:
-        rows.extend([
-            "- " + _safe(entry["title"]) + " ("
-            + _safe(entry["year"]) + "); "
-            + ", ".join(_safe(n) for n in entry["authors"])
-            + "; DOI: " + _safe(entry["doi"])
-            + "; source: " + _safe(entry["provider"]) + ":"
-            + _safe(entry["provider_id"]), 
-            "  - Provider URL: " + _safe(entry["source_url"])
-            + "; observed at: " + _safe(entry["observed_at_utc"])
-            + "; completeness: " + _safe(entry["retrieval_completeness"]),
-            "  - Snapshot SHA-256: `" + _safe(entry["snapshot_sha256"])
-            + "`; record SHA-256: `" + _safe(entry["record_sha256"]) + "`",
-        ])
+        rows.extend(
+            [
+                "- "
+                + _safe(entry["title"])
+                + " ("
+                + _safe(entry["year"])
+                + "); "
+                + ", ".join(_safe(n) for n in entry["authors"])
+                + "; DOI: "
+                + _safe(entry["doi"])
+                + "; source: "
+                + _safe(entry["provider"])
+                + ":"
+                + _safe(entry["provider_id"]),
+                "  - Provider URL: "
+                + _safe(entry["source_url"])
+                + "; observed at: "
+                + _safe(entry["observed_at_utc"])
+                + "; completeness: "
+                + _safe(entry["retrieval_completeness"]),
+                "  - Snapshot SHA-256: `"
+                + _safe(entry["snapshot_sha256"])
+                + "`; record SHA-256: `"
+                + _safe(entry["record_sha256"])
+                + "`",
+            ]
+        )
     rows.extend(["", "## Limitations and disclosure", ""])
     rows.extend("- " + _safe(message) for message in paper["limitations"])
     return "\n".join(rows) + "\n"
