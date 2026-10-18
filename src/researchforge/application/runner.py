@@ -339,12 +339,12 @@ class RunnerService:
                 from researchforge.hypothesis_forge import HypothesisDraft
 
                 try:
-                    payload = json.loads(ledger.cas.get(approvals[0].payload_ref))
-                    draft = HypothesisDraft.model_validate(payload["draft"])
+                    approval_payload = json.loads(ledger.cas.get(approvals[0].payload_ref))
+                    draft = HypothesisDraft.model_validate(approval_payload["draft"])
                     if (
-                        payload["draft_sha256"] != draft.draft_sha256
+                        approval_payload["draft_sha256"] != draft.draft_sha256
                         or draft.design.hypothesis_id != hypothesis_id
-                        or payload["approval"] != "EXPLICIT_HUMAN_CLI"
+                        or approval_payload["approval"] != "EXPLICIT_HUMAN_CLI"
                     ):
                         raise ValueError("HypothesisForge approval does not match draft")
                 except (KeyError, TypeError, ValueError) as exc:
