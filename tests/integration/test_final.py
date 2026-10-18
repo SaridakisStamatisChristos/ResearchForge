@@ -172,8 +172,6 @@ def test_crash_after_final_start_is_not_retried(
     q, r, final, _ = experiment
     _prepare(q, r)
     final.nominate("good")
-    with patch.object(r, "_run_locked"):
-        pass
     with patch.object(final.runner, "_run_locked", side_effect=SystemExit(9)):
         with pytest.raises(SystemExit):
             final.evaluate(approved=True)
@@ -197,7 +195,7 @@ def test_forged_final_conclusion_rejected(
         "good",
         {"status": "FINAL_SUPPORTED", "measured_improvement": 12345},
     )
-    with pytest.raises(RunnerIntegrityError, match="Multiple final conclusions"):
+    with pytest.raises(RunnerIntegrityError, match="duplicate final conclusion"):
         final.inspect()
 
 
@@ -255,3 +253,33 @@ def test_stats_cli(tmp_path: Path) -> None:
     )
     assert res.exit_code == 0, res.output
     assert json.loads(res.output)["data"]["observation_count"] == 3
+
+
+def test_final_plan_refuses_forged_threshold(
+    experiment: tuple[QualificationService, RunnerService, FinalService, Path],
+) -> None:
+    selection, runner, final, _ = experiment
+    _prepare(selection, runner)
+    original = FinalService._event
+
+    def forge(ledger: EventLedger, camp: str, kind: str, ident: str,
+              payload: dict[str, object]) -> object:
+        if kind == "FINAL_PLAN_FROZEN":
+            payload = {**payload, "threshold": 0.0}
+        return original(ledger, camp, kind, ident, payload)
+
+    with patch.object(FinalService, "_event", side_effect=forge):
+        final.nominate("good")
+    with pytest.raises(RunnerIntegrityError, match="policy"):
+        final.inspect()
+
+
+def test_stats_cli_refuses_duplicate_ids(tmp_path: Path) -> None:
+    path = tmp_path / "bad.json"
+    path.write_text(
+        '{"baseline":{"same":1,"same":2},"candidate":{"same":1},"direction":"min"}'
+    )
+    result = CliRunner().invoke(app, [
+        "stats", "paired", "--file", str(path), "--seed", "23"
+    ])
+    assert result.exit_code == 2
