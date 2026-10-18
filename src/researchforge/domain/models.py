@@ -117,7 +117,8 @@ class EvidenceEvent(StrictModel):
     @field_validator("occurred_at_utc")
     @classmethod
     def utc_required(cls, value: datetime) -> datetime:
-        if value.utcoffset() is None or value.utcoffset().total_seconds() != 0:
+        offset = value.utcoffset()
+        if offset is None or offset.total_seconds() != 0:
             raise ValueError("occurred_at_utc must have a UTC offset")
         return value
 
