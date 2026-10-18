@@ -14,7 +14,12 @@ from pydantic import Field, ValidationError
 
 from researchforge.application.campaigns import _git
 from researchforge.application.evidence import EventLedger
-from researchforge.application.runner import ExecutionRefused, RunnerIntegrityError, RunnerService, _result
+from researchforge.application.runner import (
+    ExecutionRefused,
+    RunnerIntegrityError,
+    RunnerService,
+    _result,
+)
 from researchforge.domain.models import ArtifactRef, EvaluationResult, StrictModel
 from researchforge.domain.serialization import canonical_json
 
@@ -129,9 +134,7 @@ class QualificationService:
             )
             if resolved != commit:
                 raise ExecutionRefused("Candidate must name a full commit object ID")
-            tree = _git(
-                repo, "rev-parse", "--verify", "--end-of-options", f"{commit}^{{tree}}"
-            )
+            tree = _git(repo, "rev-parse", "--verify", "--end-of-options", f"{commit}^{{tree}}")
             payload = {
                 "candidate_id": candidate_id,
                 "hypothesis_id": hypothesis_id,
@@ -146,9 +149,7 @@ class QualificationService:
                 raise ExecutionRefused("Commit already registered as another candidate")
             if len(candidates) >= manifest.budget.max_hypotheses:
                 raise ExecutionRefused("Candidate count budget exhausted")
-            self._append(
-                ledger, frozen.campaign_id, "CANDIDATE_REGISTERED", candidate_id, payload
-            )
+            self._append(ledger, frozen.campaign_id, "CANDIDATE_REGISTERED", candidate_id, payload)
             return payload
 
     def _measurements(
@@ -163,19 +164,19 @@ class QualificationService:
         closed: set[str] = set()
         measurements: dict[tuple[str, str], tuple[Any, EvaluationResult]] = {}
         exposure = 0
-        terminal = {
-            "ATTEMPT_SUCCEEDED", "ATTEMPT_FAILED", "ATTEMPT_TIMED_OUT", "ATTEMPT_UNKNOWN"
-        }
+        terminal = {"ATTEMPT_SUCCEEDED", "ATTEMPT_FAILED", "ATTEMPT_TIMED_OUT", "ATTEMPT_UNKNOWN"}
         for event, payload in self._payloads(ledger, campaign_id):
             if event.event_type == "ATTEMPT_STARTED":
                 ident = payload.get("candidate_id", "baseline")
                 role = payload.get("role")
                 target_commit = (
-                    frozen.repository_commit if ident == "baseline"
+                    frozen.repository_commit
+                    if ident == "baseline"
                     else candidates.get(str(ident), {}).get("commit")
                 )
                 target_tree = (
-                    frozen.repository_tree if ident == "baseline"
+                    frozen.repository_tree
+                    if ident == "baseline"
                     else candidates.get(str(ident), {}).get("tree")
                 )
                 if (
@@ -208,9 +209,7 @@ class QualificationService:
                     try:
                         if payload["status"] != "SUCCEEDED" or payload["exit_code"] != 0:
                             raise ValueError("Unsuccessful evaluator")
-                        stdout = ledger.cas.get(
-                            ArtifactRef.model_validate(payload["stdout_ref"])
-                        )
+                        stdout = ledger.cas.get(ArtifactRef.model_validate(payload["stdout_ref"]))
                         result = _result(
                             stdout,
                             manifest=manifest,
@@ -219,9 +218,8 @@ class QualificationService:
                         )
                         if (
                             payload["validated_result"] != result.model_dump(mode="json")
-                            or ledger.cas.get(
-                                ArtifactRef.model_validate(payload["result_ref"])
-                            ) != stdout
+                            or ledger.cas.get(ArtifactRef.model_validate(payload["result_ref"]))
+                            != stdout
                             or start["attempt_id"] != event.subject_id
                             or started_event.sequence >= event.sequence
                         ):
@@ -253,8 +251,11 @@ class QualificationService:
         status, reason = "INCONCLUSIVE", "MISSING_VERIFIED_EVIDENCE"
         gain: float | None = None
         if all(
-            key in referenced for key in (
-                "baseline:dev", f"{candidate_id}:dev", "baseline:qualification",
+            key in referenced
+            for key in (
+                "baseline:dev",
+                f"{candidate_id}:dev",
+                "baseline:qualification",
                 f"{candidate_id}:qualification",
             )
         ):
@@ -262,13 +263,8 @@ class QualificationService:
             c_dev = measurements[(candidate_id, "dev")][1].value
             b_qual = measurements[("baseline", "qualification")][1].value
             c_qual = measurements[(candidate_id, "qualification")][1].value
-            dev_gain = (
-                b_dev - c_dev if manifest.metric.direction == "min" else c_dev - b_dev
-            )
-            gain = (
-                b_qual - c_qual if manifest.metric.direction == "min"
-                else c_qual - b_qual
-            )
+            dev_gain = b_dev - c_dev if manifest.metric.direction == "min" else c_dev - b_dev
+            gain = b_qual - c_qual if manifest.metric.direction == "min" else c_qual - b_qual
             policy = manifest.qualification_policy
             strict = not policy.allow_equal
             dev_ok = dev_gain > 0 if strict else dev_gain >= 0
@@ -298,18 +294,10 @@ class QualificationService:
             result = self.decide(candidate_id)
             prior: tuple[Any, dict[str, Any]] | None = None
             for event, payload in self._payloads(ledger, frozen.campaign_id):
-                if (
-                    event.event_type == "QUALIFICATION_DECIDED"
-                    and event.subject_id == candidate_id
-                ):
+                if event.event_type == "QUALIFICATION_DECIDED" and event.subject_id == candidate_id:
                     prior = (event, payload)
-            if (
-                prior is not None
-                and prior[1].get("evidence_events") == result["evidence_events"]
-            ):
+            if prior is not None and prior[1].get("evidence_events") == result["evidence_events"]:
                 return prior[1]
             result["supersedes_event_sha256"] = prior[0].event_sha256 if prior else None
-            self._append(
-                ledger, frozen.campaign_id, "QUALIFICATION_DECIDED", candidate_id, result
-            )
+            self._append(ledger, frozen.campaign_id, "QUALIFICATION_DECIDED", candidate_id, result)
             return result
