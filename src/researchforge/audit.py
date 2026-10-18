@@ -50,9 +50,11 @@ class ClaimSpec(StrictModel):
     @model_validator(mode="after")
     def validate_assertion(self) -> ClaimSpec:
         if self.kind == "final_status":
-            if self.expected not in {
-                "FINAL_SUPPORTED", "FINAL_NOT_SUPPORTED", "FINAL_INCONCLUSIVE"
-            } or self.subject_id is not None:
+            if (
+                self.expected
+                not in {"FINAL_SUPPORTED", "FINAL_NOT_SUPPORTED", "FINAL_INCONCLUSIVE"}
+                or self.subject_id is not None
+            ):
                 raise ValueError("Final claim requires a final status and no subject_id")
         elif self.kind == "qualification_status":
             if self.expected not in {"QUALIFIED", "REJECTED", "INCONCLUSIVE"}:
@@ -101,9 +103,7 @@ def read_claims(path: Path) -> ClaimBatch:
         raise AuditInputError("Claim file exceeds maximum size")
     try:
         content = path.read_bytes().decode("utf-8")
-        obj = json.loads(
-            content, object_pairs_hook=_unique_pairs, parse_constant=_reject_constant
-        )
+        obj = json.loads(content, object_pairs_hook=_unique_pairs, parse_constant=_reject_constant)
         return ClaimBatch.model_validate(obj)
     except (ValueError, UnicodeError, ValidationError) as exc:
         raise AuditInputError("Invalid versioned claim input") from exc
@@ -162,17 +162,12 @@ def _campaign_claim(
     missing = [link.sha256 for link in claim.evidence if link.sha256 not in events]
     if missing:
         return _result(claim, "UNVERIFIED", missing=missing, note="Unknown campaign event hash")
-    expected_event = (
-        "FINAL_EVALUATED" if claim.kind == "final_status" else "QUALIFICATION_DECIDED"
-    )
+    expected_event = "FINAL_EVALUATED" if claim.kind == "final_status" else "QUALIFICATION_DECIDED"
     matching = [
         (ref.sha256, events[ref.sha256])
         for ref in claim.evidence
         if events[ref.sha256][0] == expected_event
-        and (
-            claim.kind != "qualification_status"
-            or events[ref.sha256][1] == claim.subject_id
-        )
+        and (claim.kind != "qualification_status" or events[ref.sha256][1] == claim.subject_id)
     ]
     if len(matching) != 1 or len(claim.evidence) != 1:
         return _result(
@@ -187,21 +182,26 @@ def _campaign_claim(
         if (
             final.get("final_result") is None
             or recorded != verified
-            or recorded not in {
-                "FINAL_SUPPORTED", "FINAL_NOT_SUPPORTED", "FINAL_INCONCLUSIVE"
-            }
+            or recorded not in {"FINAL_SUPPORTED", "FINAL_NOT_SUPPORTED", "FINAL_INCONCLUSIVE"}
         ):
             return _result(
-                claim, "UNVERIFIED", used=[sha],
+                claim,
+                "UNVERIFIED",
+                used=[sha],
                 note="Final event contradicts independently replayed final result",
             )
         if claim.expected != recorded:
             return _result(
-                claim, "CONTRADICTED", used=[sha], conflicts=[f"actual={recorded}"],
+                claim,
+                "CONTRADICTED",
+                used=[sha],
+                conflicts=[f"actual={recorded}"],
                 note="Contradicts the frozen final decision, not necessarily a scientific theory",
             )
         return _result(
-            claim, "SUPPORTED", used=[sha],
+            claim,
+            "SUPPORTED",
+            used=[sha],
             note="Only the bounded, replayed final decision is supported; no general superiority",
         )
     # The append-only ledger validates identity and integrity, but does not
@@ -216,25 +216,30 @@ def _campaign_claim(
     )
     if sha != latest:
         return _result(
-            claim, "UNVERIFIED", used=[sha],
+            claim,
+            "UNVERIFIED",
+            used=[sha],
             note="Superseded qualification evidence cannot be cherry-picked",
         )
     if recorded not in {"QUALIFIED", "REJECTED", "INCONCLUSIVE"}:
         return _result(claim, "UNVERIFIED", used=[sha])
     if recorded != claim.expected:
         return _result(
-            claim, "CONTRADICTED", used=[sha], conflicts=[f"actual={recorded}"],
+            claim,
+            "CONTRADICTED",
+            used=[sha],
+            conflicts=[f"actual={recorded}"],
             note="Contradicts the recorded qualification decision",
         )
     return _result(
-        claim, "OBSERVED", used=[sha],
+        claim,
+        "OBSERVED",
+        used=[sha],
         note="A qualification decision was recorded; it is not confirmatory evidence",
     )
 
 
-def _literature_claim(
-    claim: ClaimSpec, store: Path | None
-) -> dict[str, Any]:
+def _literature_claim(claim: ClaimSpec, store: Path | None) -> dict[str, Any]:
     if store is None:
         return _result(claim, "NOT_EVALUATED", missing=["literature_store_not_supplied"])
     if not claim.evidence:
@@ -246,7 +251,9 @@ def _literature_claim(
             data = read_snapshot(store, link.sha256)
         except LiteratureArchiveError:
             return _result(
-                claim, "UNVERIFIED", missing=[link.sha256],
+                claim,
+                "UNVERIFIED",
+                missing=[link.sha256],
                 note="Snapshot missing, corrupt or internally inconsistent",
             )
         for batch in data["batches"]:
@@ -257,11 +264,14 @@ def _literature_claim(
                     matches.append(link.sha256)
     if not matches:
         return _result(
-            claim, "INCONCLUSIVE",
+            claim,
+            "INCONCLUSIVE",
             note="No matching observation in supplied snapshots; absence is not established",
         )
     return _result(
-        claim, "OBSERVED", used=sorted(set(matches)),
+        claim,
+        "OBSERVED",
+        used=sorted(set(matches)),
         note=(
             "Source metadata observation only; not claim truth, peer review "
             "or global discoverability"
@@ -288,8 +298,12 @@ def audit_claims(
     counts = {
         status: sum(item["status"] == status for item in entries)
         for status in (
-            "OBSERVED", "SUPPORTED", "CONTRADICTED",
-            "INCONCLUSIVE", "UNVERIFIED", "NOT_EVALUATED"
+            "OBSERVED",
+            "SUPPORTED",
+            "CONTRADICTED",
+            "INCONCLUSIVE",
+            "UNVERIFIED",
+            "NOT_EVALUATED",
         )
     }
     return {
@@ -315,18 +329,20 @@ def markdown_report(report: dict[str, Any]) -> str:
         "",
     ]
     for item in report["claims"]:
-        rows.extend([
-            f"## {item['claim_id']} — {item['status']}",
-            "",
-            f"Claim: {item['text']}",
-            f"Scope: {item['scope']}",
-            f"Expected: {item['expected']}",
-            f"Evidence: {', '.join(item['used_evidence']) or 'none'}",
-            f"Missing: {', '.join(item['missing_evidence']) or 'none'}",
-            f"Conflicts: {', '.join(item['conflicts']) or 'none'}",
-            f"Interpretation: {item['note']}",
-            "",
-        ])
+        rows.extend(
+            [
+                f"## {item['claim_id']} — {item['status']}",
+                "",
+                f"Claim: {item['text']}",
+                f"Scope: {item['scope']}",
+                f"Expected: {item['expected']}",
+                f"Evidence: {', '.join(item['used_evidence']) or 'none'}",
+                f"Missing: {', '.join(item['missing_evidence']) or 'none'}",
+                f"Conflicts: {', '.join(item['conflicts']) or 'none'}",
+                f"Interpretation: {item['note']}",
+                "",
+            ]
+        )
     rows.extend(["## Limitations", ""])
     rows.extend(f"- {limitation}" for limitation in report["limitations"])
     return "\n".join(rows) + "\n"
@@ -346,9 +362,7 @@ def audit_claims_cli(
     """Inspect supplied explicit claims; never execute evaluators or contact providers."""
     try:
         batch = read_claims(input_file)
-        result = audit_claims(
-            batch, campaign=campaign, literature_store=literature_store
-        )
+        result = audit_claims(batch, campaign=campaign, literature_store=literature_store)
         if report_format == "json":
             rendered = ResponseEnvelope(status="OK", data=result).model_dump_json(indent=2) + "\n"
         elif report_format == "md":

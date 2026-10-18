@@ -22,13 +22,9 @@ jobs:
       - name: Ruff lint
         run: ruff check .
       - name: Ruff format
-        run: |
-          ruff format --diff .
-          ruff format --check .
-        continue-on-error: true
+        run: ruff format --check .
       - name: Mypy
         run: mypy src
-        continue-on-error: true
       - name: Schema drift
         run: python tools/generate_schemas.py --check
       - name: Test
