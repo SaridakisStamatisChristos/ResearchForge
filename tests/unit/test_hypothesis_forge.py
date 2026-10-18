@@ -84,13 +84,19 @@ def test_model_generation_is_opt_in_unverified_and_bounded() -> None:
 
     with pytest.raises(ForgeInputError, match="explicit"):
         generate_model_draft(
-            "Test phase control", model="unit-test-model",
-            allow_network=False, api_key="test", transport=fake_transport
+            "Test phase control",
+            model="unit-test-model",
+            allow_network=False,
+            api_key="test",
+            transport=fake_transport,
         )
     assert not calls
     draft = generate_model_draft(
-        "Test phase control", model="unit-test-model",
-        allow_network=True, api_key="test", transport=fake_transport
+        "Test phase control",
+        model="unit-test-model",
+        allow_network=True,
+        api_key="test",
+        transport=fake_transport,
     )
     assert draft.status == "AI_PROPOSED_UNVERIFIED"
     assert draft.provenance is not None
@@ -99,16 +105,21 @@ def test_model_generation_is_opt_in_unverified_and_bounded() -> None:
     assert HypothesisDraft.model_validate_json(draft.model_dump_json()) == draft
     with pytest.raises(ForgeInputError, match="exceeds"):
         generate_model_draft(
-            "Research", model="unit-test-model", allow_network=True,
-            api_key="test", transport=lambda _b, _k: b"x" * 65537
+            "Research",
+            model="unit-test-model",
+            allow_network=True,
+            api_key="test",
+            transport=lambda _b, _k: b"x" * 65537,
         )
     with pytest.raises(ValidationError):
         generate_model_draft(
-            "Research", model="unit-test-model", allow_network=True,
-            api_key="test", transport=lambda _b, _k: (
-                json.dumps({"choices": [{"message": {"content": '{"status":"QUALIFIED"}'}}]})
-                .encode()
-            )
+            "Research",
+            model="unit-test-model",
+            allow_network=True,
+            api_key="test",
+            transport=lambda _b, _k: json.dumps(
+                {"choices": [{"message": {"content": '{"status":"QUALIFIED"}'}}]}
+            ).encode(),
         )
 
 
@@ -125,13 +136,31 @@ def test_cli_explicit_review_boundary(tmp_path: Path) -> None:
     assert len(digest) == 64
     assert read_draft(out).draft_sha256 == digest
     res = runner.invoke(
-        app, ["hypothesis", "approve", "--campaign", str(tmp_path),
-              "--file", str(out), "--expect-sha256", digest]
+        app,
+        [
+            "hypothesis",
+            "approve",
+            "--campaign",
+            str(tmp_path),
+            "--file",
+            str(out),
+            "--expect-sha256",
+            digest,
+        ],
     )
     assert res.exit_code == 3
     res = runner.invoke(
-        app, ["hypothesis", "generate", "--brief", str(input_file),
-              "--output", str(tmp_path / "model.json"), "--model", "mock"]
+        app,
+        [
+            "hypothesis",
+            "generate",
+            "--brief",
+            str(input_file),
+            "--output",
+            str(tmp_path / "model.json"),
+            "--model",
+            "mock",
+        ],
     )
     assert res.exit_code == 3
     assert not (tmp_path / "model.json").exists()
