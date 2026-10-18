@@ -17,7 +17,7 @@ from researchforge.application.campaigns import CampaignService
 from researchforge.application.final import FinalService
 from researchforge.application.qualification import HypothesisSpec, QualificationService
 from researchforge.application.runner import RunnerService
-from researchforge.domain.serialization import canonical_json, digest_bytes
+from researchforge.domain.serialization import canonical_json
 
 
 # Kept self-contained so editable installs and installed wheels behave identically.
