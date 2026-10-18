@@ -299,6 +299,22 @@ class QualificationService:
                 if event.event_type == "QUALIFICATION_DECIDED" and event.subject_id == candidate_id:
                     prior = (event, payload)
             if prior is not None and prior[1].get("evidence_events") == result["evidence_events"]:
+                # Event-chain integrity does not imply a correct policy verdict.
+                fields = (
+                    "candidate_id", "status", "reason", "policy_version",
+                    "policy_sha256", "qualified_improvement",
+                    "minimum_absolute_improvement", "selection_stage_only",
+                )
+                if any(prior[1].get(key) != result[key] for key in fields):
+                    raise RunnerIntegrityError(
+                        "Stored qualification decision contradicts deterministic replay"
+                    )
+                old_exposure = prior[1].get("qualification_attempt_exposure")
+                if (
+                    not isinstance(old_exposure, int)
+                    or not 0 <= old_exposure <= result["qualification_attempt_exposure"]
+                ):
+                    raise RunnerIntegrityError("Invalid historical qualification exposure")
                 return prior[1]
             result["supersedes_event_sha256"] = prior[0].event_sha256 if prior else None
             self._append(ledger, frozen.campaign_id, "QUALIFICATION_DECIDED", candidate_id, result)
