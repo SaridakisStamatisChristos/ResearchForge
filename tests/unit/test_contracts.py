@@ -53,17 +53,20 @@ def test_manifest_frozen_and_roundtrip(manifest_data: dict[str, object]) -> None
         obj.campaign_id = "changed"
 
 
-@pytest.mark.parametrize("mutation", [
-    lambda d: d.update(schema_version="2.0"),
-    lambda d: d.update(execution_trust="remote_unsandboxed"),
-    lambda d: d.update(unknown="extra"),
-    lambda d: d["splits"].update(final="splits/dev.json"),  # type: ignore[union-attr]
-    lambda d: d["budget"].update(max_attempts=0),  # type: ignore[union-attr]
-    lambda d: d["evaluation"].update(argv=["python", ""]),  # type: ignore[union-attr]
-    lambda d: d["qualification_policy"].update(  # type: ignore[union-attr]
-        minimum_absolute_improvement=float("nan")
-    ),
-])
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda d: d.update(schema_version="2.0"),
+        lambda d: d.update(execution_trust="remote_unsandboxed"),
+        lambda d: d.update(unknown="extra"),
+        lambda d: d["splits"].update(final="splits/dev.json"),  # type: ignore[union-attr]
+        lambda d: d["budget"].update(max_attempts=0),  # type: ignore[union-attr]
+        lambda d: d["evaluation"].update(argv=["python", ""]),  # type: ignore[union-attr]
+        lambda d: d["qualification_policy"].update(  # type: ignore[union-attr]
+            minimum_absolute_improvement=float("nan")
+        ),
+    ],
+)
 def test_manifest_rejects_invalid(manifest_data: dict[str, object], mutation: object) -> None:
     assert callable(mutation)
     mutation(manifest_data)
@@ -73,8 +76,13 @@ def test_manifest_rejects_invalid(manifest_data: dict[str, object], mutation: ob
 
 def test_result_rejects_forged_shape_and_nonfinite() -> None:
     payload = {
-        "schema_version": "1.0", "status": "complete", "metric": "error_count",
-        "direction": "min", "value": 3, "unit": "errors", "sample_count": 10,
+        "schema_version": "1.0",
+        "status": "complete",
+        "metric": "error_count",
+        "direction": "min",
+        "value": 3,
+        "unit": "errors",
+        "sample_count": 10,
         "samples_sha256": "c" * 64,
         "correctness": {"passed": True, "validator_id": "toy-v1"},
         "details": {"failures": 3},
@@ -93,11 +101,17 @@ def test_result_rejects_forged_shape_and_nonfinite() -> None:
 
 def test_event_utc_digest_identity() -> None:
     payload = {
-        "event_schema": "1.0", "event_id": str(uuid4()), "campaign_id": "toy-001",
-        "sequence": 1, "event_type": "CREATED", "occurred_at_utc": "2026-10-18T10:00:00Z",
-        "actor": {"kind": "local_process", "id": "rf"}, "subject_id": "toy-001",
+        "event_schema": "1.0",
+        "event_id": str(uuid4()),
+        "campaign_id": "toy-001",
+        "sequence": 1,
+        "event_type": "CREATED",
+        "occurred_at_utc": "2026-10-18T10:00:00Z",
+        "actor": {"kind": "local_process", "id": "rf"},
+        "subject_id": "toy-001",
         "payload_ref": {"sha256": "b" * 64, "size_bytes": 22},
-        "previous_event_sha256": None, "event_sha256": "c" * 64,
+        "previous_event_sha256": None,
+        "event_sha256": "c" * 64,
     }
     assert EvidenceEvent.model_validate_json(json.dumps(payload)).sequence == 1
     with pytest.raises(ValidationError):
