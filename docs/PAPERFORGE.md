@@ -28,6 +28,7 @@ retrieving it read-only:
 ```python
 from pathlib import Path
 from researchforge.application.evidence import EventLedger
+
 campaign = Path("/tmp/rf-demo/campaign")
 ledger = EventLedger(campaign)
 ledger.verify("toy-optimizer-v1")
