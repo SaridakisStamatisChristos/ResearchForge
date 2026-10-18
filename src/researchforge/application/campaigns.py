@@ -181,8 +181,11 @@ class CampaignService:
         manifest, evaluator_root, raw = self._manifest()
         repository = _repository_path(manifest.base.repository)
         commit = _git(
-            repository, "rev-parse", "--verify", "--end-of-options",
-            f"{manifest.base.commit}^{{commit}}"
+            repository,
+            "rev-parse",
+            "--verify",
+            "--end-of-options",
+            f"{manifest.base.commit}^{{commit}}",
         )
         tree = _git(repository, "rev-parse", "--verify", "--end-of-options", f"{commit}^{{tree}}")
         if len(commit) not in (40, 64) or len(tree) not in (40, 64):
@@ -201,12 +204,11 @@ class CampaignService:
                 role=cast(SplitRole, role),
                 relative_path=relative,
                 sha256=digest_bytes(path.read_bytes()),
-                case_count=len(ids)
+                case_count=len(ids),
             )
         # Require evaluator script inside known source. Shell commands are not run in PR03.
         if not any(
-            token.endswith(".py") and token in eval_sources
-            for token in manifest.evaluation.argv
+            token.endswith(".py") and token in eval_sources for token in manifest.evaluation.argv
         ):
             raise ManifestError("Evaluator argv must name a fingerprinted Python source file")
         environment = {"python": sys.version.split()[0], "platform": platform.system()}
@@ -219,7 +221,9 @@ class CampaignService:
             evaluator_source_sha256=evaluator_digest,
             evaluator_files=eval_sources,
             environment_sha256=digest_bytes(canonical_json(environment)),
-            policy_sha256=digest_bytes(canonical_json(manifest.qualification_policy.model_dump(mode="json"))),
+            policy_sha256=digest_bytes(
+                canonical_json(manifest.qualification_policy.model_dump(mode="json"))
+            ),
             splits=splits,
         )
 
