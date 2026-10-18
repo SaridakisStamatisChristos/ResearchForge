@@ -1,4 +1,5 @@
 """PR13 real local subprocess fixtures, adversarial SAT/graph oracles and raw replay."""
+
 from __future__ import annotations
 
 import json
@@ -48,10 +49,13 @@ def test_sat_oracle_verifies_witness_and_rejects_false_unsat() -> None:
 
 
 def test_graph_oracle_is_not_claimed_from_invalid_or_incomplete_results() -> None:
-    instance = canonical_json({
-        "nodes": ["s", "a", "t", "isolated"], "source": "s",
-        "edges": [["s", "a", 2], ["a", "t", 1], ["s", "t", 5]],
-    })
+    instance = canonical_json(
+        {
+            "nodes": ["s", "a", "t", "isolated"],
+            "source": "s",
+            "edges": [["s", "a", 2], ["a", "t", 1], ["s", "t", 5]],
+        }
+    )
     expected = canonical_json({"distances": {"s": 0, "a": 2, "t": 3, "isolated": None}})
     assert verify_graph(instance, expected, 0)[0] == "VERIFIED_GRAPH"
     assert verify_graph(instance, expected.replace(b'"t":3', b'"t":4'), 0)[0] == "WRONG_ANSWER"
@@ -102,16 +106,26 @@ def test_approval_and_no_clobber_are_real_guards(tmp_path: Path) -> None:
     success = CliRunner().invoke(
         app,
         [
-            "cases", "run", "--plan", str(plan), "--output",
-            str(proposed_output), "--approve-trusted-local",
+            "cases",
+            "run",
+            "--plan",
+            str(plan),
+            "--output",
+            str(proposed_output),
+            "--approve-trusted-local",
         ],
     )
     assert success.exit_code == 0, success.output
     again = CliRunner().invoke(
         app,
         [
-            "cases", "run", "--plan", str(plan), "--output",
-            str(proposed_output), "--approve-trusted-local",
+            "cases",
+            "run",
+            "--plan",
+            str(plan),
+            "--output",
+            str(proposed_output),
+            "--approve-trusted-local",
         ],
     )
     assert again.exit_code == 6
