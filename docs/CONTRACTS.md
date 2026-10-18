@@ -15,3 +15,12 @@ unknown fields, invalid enum values, missing required fields and mutation after 
   4 external failure, 5 unknown, 6 ledger corruption.
 
 Do not treat contract validation alone as scientifically verified evidence.
+
+## PR02 storage semantics
+
+`EventLedger` publishes canonical payload bytes to `FileSystemCAS` before a transaction
+that appends the event, refusing stale expected sequences. Its local event chain is
+replayed offline by `verify`, checking expected sequence, event hash and blob digest.
+A SQLite or blob mutation is detected; this is **not tamper proof** against full database
+and blob rewriting by the machine owner. Crash-injected precommit exceptions leave zero
+committed phantom events and may leave identifiable orphan blobs. No automatic cleanup.
