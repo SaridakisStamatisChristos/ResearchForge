@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "hypothesis_id": "phase-policy-a",
+  "parent_id": null,
+  "proposition": "A predeclared phase selection policy reduces solver runtime on the selected development distribution",
+  "intervention": "Change only the phase-selection policy while retaining the baseline build and fixed time cutoff",
+  "mechanism": "The policy prioritizes historically consistent variables and reduces wasted branching",
+  "assumptions": [
+    "Same solver build flags and cutoff per instance",
+    "Identical case membership within each split"
+  ],
+  "confounders": [
+    "Instance difficulty",
+    "Machine scheduling and thermal throttling"
+  ],
+  "expected_metric": "runtime_seconds",
+  "expected_direction": "min",
+  "falsifier": "No preregistered runtime reduction on the qualification cases without correctness regression",
+  "test_plan": "Use fixed seeds and identical cutoff; compare dev first, then qualification, and retain negative findings",
+  "max_attempts": 3
+}

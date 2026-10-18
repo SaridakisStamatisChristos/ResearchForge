@@ -30,6 +30,16 @@ from researchforge.domain.models import (
     EvidenceEvent,
     FrozenManifest,
 )
+from researchforge.hypothesis_forge import (
+    ForgeInputError,
+    HypothesisDraft,
+    ResearchDesign,
+    assemble_draft,
+    generate_model_draft,
+    read_design,
+    read_draft,
+    save_draft,
+)
 from researchforge.literature import (
     LiteratureInputError,
     LiteratureQuery,
@@ -105,10 +115,13 @@ def schema(
         "evaluator-result": EvaluationResult,
         "evidence-event": EvidenceEvent,
         "manifest-lock": FrozenManifest,
+        "hypothesis-design": ResearchDesign,
+        "hypothesis-draft": HypothesisDraft,
     }
     if name not in models:
         raise typer.BadParameter(
-            "choose campaign, evaluator-result, evidence-event, or manifest-lock"
+            "choose campaign, evaluator-result, evidence-event, manifest-lock, "
+            "hypothesis-design or hypothesis-draft"
         )
     typer.echo(json.dumps(models[name].model_json_schema(), indent=2, sort_keys=True))
 
@@ -239,6 +252,88 @@ def hypothesis_add(
         spec = HypothesisSpec.model_validate_json(file.read_bytes())
         outcome = QualificationService(campaign_path).add_hypothesis(spec)
         typer.echo(ResponseEnvelope(status="OK", data=outcome).model_dump_json())
+    except (OSError, ValueError, ValidationError) as exc:
+        typer.echo(f"INVALID_INPUT: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    except ExecutionRefused as exc:
+        typer.echo(f"REFUSED: {exc}", err=True)
+        raise typer.Exit(code=3) from exc
+    except RunnerIntegrityError as exc:
+        typer.echo(f"CORRUPT: {exc}", err=True)
+        raise typer.Exit(code=6) from exc
+
+
+@hypothesis_commands.command("draft")
+def hypothesis_draft(
+    file: Annotated[Path, typer.Option("--file")],
+    output: Annotated[Path, typer.Option("--output")],
+) -> None:
+    """Validate a human-authored falsifiable design; no campaign mutation."""
+    try:
+        draft = assemble_draft(read_design(file))
+        save_draft(output, draft)
+        typer.echo(
+            ResponseEnvelope(
+                status="OK",
+                data={
+                    "draft_sha256": draft.draft_sha256,
+                    "status": draft.status,
+                    "path": str(output),
+                },
+            ).model_dump_json()
+        )
+    except (OSError, ValueError, ValidationError) as exc:
+        typer.echo(f"INVALID_INPUT: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+
+@hypothesis_commands.command("generate")
+def hypothesis_generate(
+    brief: Annotated[Path, typer.Option("--brief")],
+    output: Annotated[Path, typer.Option("--output")],
+    model: Annotated[str, typer.Option("--model")],
+    allow_model_network: Annotated[bool, typer.Option("--allow-model-network")] = False,
+) -> None:
+    """Opt-in OpenAI draft generation. Never approve or execute model output."""
+    if not allow_model_network:
+        typer.echo("REFUSED: model generation needs --allow-model-network", err=True)
+        raise typer.Exit(code=3)
+    try:
+        text = brief.read_text(encoding="utf-8")
+        draft = generate_model_draft(text, model=model, allow_network=True)
+        save_draft(output, draft)
+        typer.echo(
+            ResponseEnvelope(
+                status="OK",
+                data={
+                    "draft_sha256": draft.draft_sha256,
+                    "status": draft.status,
+                    "path": str(output),
+                },
+            ).model_dump_json()
+        )
+    except (OSError, ValueError, ValidationError, ForgeInputError) as exc:
+        typer.echo(f"FAILED: {exc}", err=True)
+        raise typer.Exit(code=4) from exc
+
+
+@hypothesis_commands.command("approve")
+def hypothesis_approve(
+    campaign_path: Annotated[Path, typer.Option("--campaign")],
+    file: Annotated[Path, typer.Option("--file")],
+    expected_sha256: Annotated[str, typer.Option("--expect-sha256")],
+    approve_human: Annotated[bool, typer.Option("--approve-human")] = False,
+) -> None:
+    """Explicitly admit a reviewed draft; keep model proposal unverified until approved."""
+    if not approve_human:
+        typer.echo("REFUSED: --approve-human required", err=True)
+        raise typer.Exit(code=3)
+    try:
+        draft = read_draft(file)
+        result = QualificationService(campaign_path).admit_forge_draft(
+            draft, approved_by_human=True, expected_sha256=expected_sha256
+        )
+        typer.echo(ResponseEnvelope(status="OK", data=result).model_dump_json())
     except (OSError, ValueError, ValidationError) as exc:
         typer.echo(f"INVALID_INPUT: {exc}", err=True)
         raise typer.Exit(code=2) from exc
