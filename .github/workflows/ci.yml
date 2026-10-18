@@ -69,3 +69,20 @@ jobs:
             ${{ runner.temp }}/pr13-networkx-replay.json
           if-no-files-found: error
           retention-days: 30
+      - name: PR14 paired-agent mechanical control, full and ablation subprocess checks
+        run: |
+          python -m researchforge.uplift_fixture_demo --output "${${{ runner.temp }}_TEMP}/researchforge-pr14-uplift" > "${${{ runner.temp }}_TEMP}/pr14-original.json"
+          rf uplift verify --bundle "${${{ runner.temp }}_TEMP}/researchforge-pr14-uplift" > "${${{ runner.temp }}_TEMP}/pr14-replay.json"
+          rf uplift report --bundle "${${{ runner.temp }}_TEMP}/researchforge-pr14-uplift" --format md > "${${{ runner.temp }}_TEMP}/pr14-replay.md"
+          python -c 'import json,os,pathlib; p=pathlib.Path(os.environ["${{ runner.temp }}_TEMP"])/"pr14-replay.json"; r=json.loads(p.read_text()); assert r["provenance_class"]=="MECHANICAL_FIXTURE" and r["task_count"]==8 and len(r["comparisons"])==3 and not r["population_uplift_established"]'
+      - name: Publish PR14 raw task logs, pinned plan, ablation and replay evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: researchforge-pr14-uplift-fixture-py${{ matrix.python }}
+          path: |
+            ${{ runner.temp }}/researchforge-pr14-uplift/
+            ${{ runner.temp }}/pr14-original.json
+            ${{ runner.temp }}/pr14-replay.json
+            ${{ runner.temp }}/pr14-replay.md
+          if-no-files-found: error
+          retention-days: 30
