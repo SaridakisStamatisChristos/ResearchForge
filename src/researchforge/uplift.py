@@ -81,7 +81,9 @@ class Arm(StrictModel):
                 for item in self.argv
             )
         ):
-            raise ValueError("An absolute executable and separate task/output/context tokens required")
+            raise ValueError(
+                "An absolute executable and separate task/output/context tokens required"
+            )
         if len(set(self.components)) != len(self.components):
             raise ValueError("Duplicate components")
         for path, sha in self.pinned_files.items():
@@ -233,7 +235,9 @@ def run_uplift(plan_file: Path, bundle: Path, *, approved: bool) -> dict[str, An
     for task in plan.tasks:
         for arm in rng.sample(plan.arms, k=len(plan.arms)):
             if total_wall >= plan.max_total_wall_seconds:
-                raise UpliftRefused("Total measured wall budget exhausted; partial bundle unverified")
+                raise UpliftRefused(
+                    "Total measured wall budget exhausted; partial bundle unverified"
+                )
             _pin(arm)
             prefix = _trial_paths(task, arm)
             task_bytes = canonical_json({"task_id": task.task_id, "prompt": task.prompt})
@@ -250,7 +254,10 @@ def run_uplift(plan_file: Path, bundle: Path, *, approved: bool) -> dict[str, An
                 context.resolve(),
                 plan.seed,
             )
-            budget = min(plan.timeout_seconds, max(1, math.ceil(plan.max_total_wall_seconds - total_wall)))
+            budget = min(
+                plan.timeout_seconds,
+                max(1, math.floor(plan.max_total_wall_seconds - total_wall)),
+            )
             code, stdout, stderr, failure, seconds = _bounded_process(
                 argv,
                 cwd=(bundle / prefix).resolve(),
@@ -269,7 +276,11 @@ def run_uplift(plan_file: Path, bundle: Path, *, approved: bool) -> dict[str, An
             _write_new(bundle, f"{prefix}/stdout.log", stdout)
             _write_new(bundle, f"{prefix}/stderr.log", stderr)
             present = response_path.is_file() and not response_path.is_symlink()
-            raw = response_path.read_bytes() if present and response_path.stat().st_size <= _MAX_FILE else b""
+            raw = (
+                response_path.read_bytes()
+                if present and response_path.stat().st_size <= _MAX_FILE
+                else b""
+            )
             if present and response_path.stat().st_size > _MAX_FILE:
                 failure = "OUTPUT_LIMIT"
             _write_new(bundle, f"{prefix}/captured_answer.json", raw)
@@ -354,7 +365,8 @@ def verify_uplift(bundle: Path) -> dict[str, Any]:
         receipt = _parse_json(raw)
         if (
             not isinstance(receipt, dict)
-            or set(receipt) != {"schema_version", "provenance", "execution_root", "plan_sha256", "rows"}
+            or set(receipt)
+            != {"schema_version", "provenance", "execution_root", "plan_sha256", "rows"}
             or receipt["schema_version"] != "1.0"
             or receipt["provenance"] != "EXECUTED_LOCAL_COMMANDS"
             or receipt["plan_sha256"] != digest_bytes(plan_data)
@@ -452,13 +464,13 @@ def verify_uplift(bundle: Path) -> dict[str, Any]:
             "negative_or_null_findings": negative,
             "population_uplift_established": False,
             "limitations": [
-                "Scores are from fixed tasks; the paired bootstrap is descriptive, not population proof",
-                "Declared external agent identity, token use, and model settings are not independently attested",
-                "Agent context isolation is by working directory, not an adversarial security sandbox",
-                "Local file hashes detect changes but cannot prevent coordinated forgery by an administrator",
-                "Skills can be ignored by the agent; exposed components are not proof of causal use",
-                "Uncontrolled external service state, sampling seeds or cross-task model memory may confound",
-                "A mechanical fixture is an integration test, not empirical LLM/agent uplift evidence",
+                "Fixed-task bootstrap intervals do not demonstrate population uplift",
+                "Agent identity, tokens and model settings are not independently attested",
+                "Working-directory separation is not an adversarial security sandbox",
+                "Local hashes cannot prevent coordinated forgery by an administrator",
+                "Agent skill exposure does not prove that the model used a component",
+                "Provider state, seeds and cross-task model memory may confound",
+                "A mechanical fixture is not evidence of actual LLM/agent uplift",
             ],
         }
     except (OSError, UnicodeError, ValueError, ValidationError, TypeError) as exc:
