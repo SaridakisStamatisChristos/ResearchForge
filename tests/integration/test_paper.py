@@ -26,8 +26,13 @@ from researchforge.paper import (
 
 
 def _claim(
-    claim_id: str, kind: str, expected: str, sha: str | None,
-    *, subject_id: str | None = None, text: str = "Measured, bounded research predicate"
+    claim_id: str,
+    kind: str,
+    expected: str,
+    sha: str | None,
+    *,
+    subject_id: str | None = None,
+    text: str = "Measured, bounded research predicate",
 ) -> dict[str, Any]:
     return {
         "claim_id": claim_id,
@@ -37,20 +42,29 @@ def _claim(
         "expected": expected,
         "subject_id": subject_id,
         "evidence": (
-            [{"source": "literature_snapshot" if kind == "literature_doi" else "campaign_event",
-              "sha256": sha}]
-            if sha is not None else []
+            [
+                {
+                    "source": "literature_snapshot"
+                    if kind == "literature_doi"
+                    else "campaign_event",
+                    "sha256": sha,
+                }
+            ]
+            if sha is not None
+            else []
         ),
     }
 
 
 def _spec(claims: list[dict[str, Any]], title: str = "Toy research report") -> PaperSpec:
-    return PaperSpec.model_validate({
-        "schema_version": "1.0",
-        "title": title,
-        "authors": ["Example Researcher"],
-        "claims": {"schema_version": "1.0", "claims": claims},
-    })
+    return PaperSpec.model_validate(
+        {
+            "schema_version": "1.0",
+            "title": title,
+            "authors": ["Example Researcher"],
+            "claims": {"schema_version": "1.0", "claims": claims},
+        }
+    )
 
 
 def _fixture(tmp_path: Path) -> tuple[Path, str, str]:
@@ -60,7 +74,8 @@ def _fixture(tmp_path: Path) -> tuple[Path, str, str]:
     events = ledger.read_events("toy-optimizer-v1")
     final = next(x.event_sha256 for x in events if x.event_type == "FINAL_EVALUATED")
     qualified = next(
-        x.event_sha256 for x in reversed(events)
+        x.event_sha256
+        for x in reversed(events)
         if x.event_type == "QUALIFICATION_DECIDED" and x.subject_id == "good"
     )
     return root, final, qualified
@@ -68,28 +83,41 @@ def _fixture(tmp_path: Path) -> tuple[Path, str, str]:
 
 def test_real_executed_final_produces_bounded_traceable_table(tmp_path: Path) -> None:
     campaign, final, qualified = _fixture(tmp_path)
-    spec = _spec([
-        _claim("final", "final_status", "FINAL_SUPPORTED", final,
-               text="This unreviewed wording claims universal superiority"),
-        _claim("selection", "qualification_status", "QUALIFIED", qualified, subject_id="good"),
-        _claim("wrong", "final_status", "FINAL_NOT_SUPPORTED", final),
-        _claim("unbacked", "final_status", "FINAL_SUPPORTED", None),
-    ])
+    spec = _spec(
+        [
+            _claim(
+                "final",
+                "final_status",
+                "FINAL_SUPPORTED",
+                final,
+                text="This unreviewed wording claims universal superiority",
+            ),
+            _claim("selection", "qualification_status", "QUALIFIED", qualified, subject_id="good"),
+            _claim("wrong", "final_status", "FINAL_NOT_SUPPORTED", final),
+            _claim("unbacked", "final_status", "FINAL_SUPPORTED", None),
+        ]
+    )
     report = build_paper(spec, campaign=campaign)
     assert report["audit_counts"]["VERIFIED"] == 1
     assert [c["status"] for c in report["claims"]] == [
-        "VERIFIED", "OBSERVED", "CONTRADICTED", "INCONCLUSIVE"
+        "VERIFIED",
+        "OBSERVED",
+        "CONTRADICTED",
+        "INCONCLUSIVE",
     ]
     assert [c["publication_use"] for c in report["claims"]] == [
-        "VERIFIED_BOUNDED_FINAL_PREDICATE", "EXPLORATORY_ONLY",
-        "NOT_SUPPORTED_FOR_FINDINGS", "NOT_SUPPORTED_FOR_FINDINGS"
+        "VERIFIED_BOUNDED_FINAL_PREDICATE",
+        "EXPLORATORY_ONLY",
+        "NOT_SUPPORTED_FOR_FINDINGS",
+        "NOT_SUPPORTED_FOR_FINDINGS",
     ]
     assert len(report["measurements"]) == 1
     row = report["measurements"][0]
     assert row["scope"] == "frozen final dataset only"
-    assert row["split_sha256"] == json.loads(
-        (campaign / "manifest.lock.json").read_text()
-    )["splits"]["final"]["sha256"]
+    assert (
+        row["split_sha256"]
+        == json.loads((campaign / "manifest.lock.json").read_text())["splits"]["final"]["sha256"]
+    )
     assert row["baseline"]["stdout_sha256"] and row["candidate"]["stdout_sha256"]
     assert row["improvement"] == (
         row["baseline"]["metric_value"] - row["candidate"]["metric_value"]
@@ -105,10 +133,12 @@ def test_real_executed_final_produces_bounded_traceable_table(tmp_path: Path) ->
 
 def test_missing_and_foreign_evidence_never_produce_metric_table(tmp_path: Path) -> None:
     campaign, _, _ = _fixture(tmp_path)
-    spec = _spec([
-        _claim("foreign", "final_status", "FINAL_SUPPORTED", "0" * 64),
-        _claim("no-link", "qualification_status", "QUALIFIED", None, subject_id="good"),
-    ])
+    spec = _spec(
+        [
+            _claim("foreign", "final_status", "FINAL_SUPPORTED", "0" * 64),
+            _claim("no-link", "qualification_status", "QUALIFIED", None, subject_id="good"),
+        ]
+    )
     report = build_paper(spec, campaign=campaign)
     assert report["measurements"] == []
     assert report["bibliography"] == []
@@ -119,31 +149,54 @@ def test_missing_and_foreign_evidence_never_produce_metric_table(tmp_path: Path)
 def test_source_specific_bibliography_is_only_observed_metadata(tmp_path: Path) -> None:
     raw: dict[str, object] = {"DOI": "10.1234/paper", "title": ["<unsafe> * injected"]}
     entry = LiteratureRecord(
-        provider="crossref", provider_id="10.1234/paper", kind="work",
-        doi="10.1234/paper", title="<unsafe> * injected", authors=["A & B"],
-        year=2026, source_url=None, raw_sha256=digest_bytes(canonical_json(raw)), raw=raw
+        provider="crossref",
+        provider_id="10.1234/paper",
+        kind="work",
+        doi="10.1234/paper",
+        title="<unsafe> * injected",
+        authors=["A & B"],
+        year=2026,
+        source_url=None,
+        raw_sha256=digest_bytes(canonical_json(raw)),
+        raw=raw,
     )
     observed = datetime.now(UTC)
     page = RetrievalPage(
-        requested_url="https://api.crossref.org/works", parameters={},
-        observed_at_utc=observed, http_status=200,
-        response_sha256=digest_bytes(b"response"), result_count=1, retry_count=0,
-        rate_limit_retry_after=None, failure_reason=None,
+        requested_url="https://api.crossref.org/works",
+        parameters={},
+        observed_at_utc=observed,
+        http_status=200,
+        response_sha256=digest_bytes(b"response"),
+        result_count=1,
+        retry_count=0,
+        rate_limit_retry_after=None,
+        failure_reason=None,
     )
     batch = RetrievalBatch(
-        provider="crossref", kind="works", query="paper", items=[entry],
-        pages=[page], requested_url=page.requested_url,
-        parameters={}, observed_at_utc=observed,
-        response_hash=digest_bytes(b"response"), reported_total=1,
-        retrieved_total=1, next_cursor=None, completeness="PARTIAL",
-        failure_reason="page cap", lookup_status="FOUND",
+        provider="crossref",
+        kind="works",
+        query="paper",
+        items=[entry],
+        pages=[page],
+        requested_url=page.requested_url,
+        parameters={},
+        observed_at_utc=observed,
+        response_hash=digest_bytes(b"response"),
+        reported_total=1,
+        retrieved_total=1,
+        next_cursor=None,
+        completeness="PARTIAL",
+        failure_reason="page cap",
+        lookup_status="FOUND",
     )
     store = tmp_path / "store"
     sid = store_snapshot(store, [batch])
-    spec = _spec([
-        _claim("paper", "literature_doi", "10.1234/paper", sid),
-        _claim("absent", "literature_doi", "10.1234/missing", sid),
-    ])
+    spec = _spec(
+        [
+            _claim("paper", "literature_doi", "10.1234/paper", sid),
+            _claim("absent", "literature_doi", "10.1234/missing", sid),
+        ]
+    )
     doc = build_paper(spec, literature_store=store)
     assert len(doc["bibliography"]) == 1
     assert doc["bibliography"][0]["retrieval_completeness"] == "PARTIAL"
