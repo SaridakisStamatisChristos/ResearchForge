@@ -16,7 +16,13 @@ from researchforge.demo import run_demo
 from researchforge.domain.serialization import canonical_json, digest_bytes
 from researchforge.literature import LiteratureRecord, RetrievalBatch, RetrievalPage
 from researchforge.literature_archive import store_snapshot
-from researchforge.paper import PaperInputError, PaperSpec, build_paper, read_paper_spec, render_markdown
+from researchforge.paper import (
+    PaperInputError,
+    PaperSpec,
+    build_paper,
+    read_paper_spec,
+    render_markdown,
+)
 
 
 def _claim(
