@@ -116,6 +116,12 @@ class UpliftPlan(StrictModel):
             raise ValueError("Duplicate arm identities")
         if len({a.agent_identity for a in self.arms}) != 1:
             raise ValueError("All conditions must have the same declared agent/model identity")
+        signatures = {
+            (tuple(a.argv), a.executable_sha256, tuple(sorted(a.pinned_files.items())))
+            for a in self.arms
+        }
+        if len(signatures) != 1:
+            raise ValueError("All conditions must use the same pinned executable and argv")
         if len(set(self.allowed_environment_keys)) != len(self.allowed_environment_keys):
             raise ValueError("Duplicate environment names")
         if any(not re.fullmatch(r"[A-Z_][A-Z0-9_]*", k) for k in self.allowed_environment_keys):
@@ -232,7 +238,7 @@ def run_uplift(plan_file: Path, bundle: Path, *, approved: bool) -> dict[str, An
     rng = random.Random(plan.seed)
     for task in plan.tasks:
         for arm in rng.sample(plan.arms, k=len(plan.arms)):
-            if total_wall >= plan.max_total_wall_seconds:
+            if plan.max_total_wall_seconds - total_wall < 1:
                 raise UpliftRefused(
                     "Total measured wall budget exhausted; partial bundle unverified"
                 )
@@ -271,6 +277,8 @@ def run_uplift(plan_file: Path, bundle: Path, *, approved: bool) -> dict[str, An
             if not math.isfinite(seconds) or seconds < 0:
                 raise UpliftError("Nonfinite observed process duration")
             total_wall += seconds
+            if total_wall > plan.max_total_wall_seconds:
+                raise UpliftRefused("Experiment exhausted the cumulative wall budget")
             _write_new(bundle, f"{prefix}/stdout.log", stdout)
             _write_new(bundle, f"{prefix}/stderr.log", stderr)
             present = response_path.is_file() and not response_path.is_symlink()
@@ -419,7 +427,12 @@ def verify_uplift(bundle: Path) -> dict[str, Any]:
             ):
                 raise UpliftError("Raw evidence hash mismatch")
             duration = row.get("elapsed_seconds")
-            if type(duration) not in {int, float} or not math.isfinite(duration) or duration < 0:
+            if (
+                isinstance(duration, bool)
+                or not isinstance(duration, (int, float))
+                or not math.isfinite(duration)
+                or duration < 0
+            ):
                 raise UpliftError("Invalid wall clock")
             code = row.get("exit_code")
             if code is not None and type(code) is not int:
@@ -429,6 +442,8 @@ def verify_uplift(bundle: Path) -> dict[str, Any]:
                 raise UpliftError("Unknown failure state")
             if type(row.get("answer_present")) is not bool:
                 raise UpliftError("Invalid response presence flag")
+            if not row["answer_present"] and data:
+                raise UpliftError("Absent agent output cannot have response bytes")
             state, reason = _answer(data, task, code, failure)
             if (row.get("status"), row.get("reason")) != (state, reason):
                 raise UpliftError("Receipt score disagrees with independent oracle")
