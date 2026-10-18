@@ -72,9 +72,9 @@ def store_snapshot(folder: Path, batches: list[RetrievalBatch]) -> str:
             handle.write(body)
             handle.flush()
             os.fsync(handle.fileno())
-    except FileExistsError:
+    except FileExistsError as exc:
         if file.is_symlink() or file.read_bytes() != body:
-            raise LiteratureArchiveError("Existing literature archive conflicts with digest")
+            raise LiteratureArchiveError("Existing literature archive conflicts with digest") from exc
     return key
 
 
