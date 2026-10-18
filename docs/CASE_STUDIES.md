@@ -1,106 +1,99 @@
-# PR13 case studies: real processes, paired evidence and separate correctness oracles
+# PR13 case studies: independent upstream NetworkX and offline correctness replay
 
-**Status:** Engine + toy demonstrations implemented. No SatSolv-vs-Kissat or
-ADES production results are claimed by this PR. The SatSolv default branch
-examined on 2026-10-18 contains a bootstrap README, not the evaluated
-experimental solver lineage; neither external solver binary was supplied.
-An unrelated shortest-path domain is exercised with actual local Python
-processes, not a claimed external ADES binary run.
+## External project selected
 
-## Contract and CLI
+**NetworkX** — <https://github.com/networkx/networkx> — is an independently
+maintained, BSD-3-Clause-licensed Python network/graph algorithms project.
+The case study executes **NetworkX 3.6.1** as a pinned optional dependency.
+No code or datasets from the operator's private or personal repositories are
+used.
 
-Use a JSON plan that declares two executables, exact SHA-256 of each executable
-file, frozen identity/version, dataset cases with relative paths and SHA-256
-hashes, family IDs, one common cutoff, seed, output cap, environment note and
-research design note.
+We compare two upstream algorithms on exactly the same directed,
+nonnegative-integer weighted graph inputs:
 
-Run fully independent *toy* case studies (no external services or secrets):
+- `networkx.single_source_dijkstra_path_length`
+- `networkx.single_source_bellman_ford_path_length`
 
-\`\`\`bash
-python -m researchforge.case_demo --output /tmp/rf-pr13-case-studies
-rf cases verify --bundle /tmp/rf-pr13-case-studies/sat/raw-bundle
-rf cases verify --bundle /tmp/rf-pr13-case-studies/shortest_path/raw-bundle
-\`\`\`
+**Independent result oracle:** ResearchForge's separately implemented
+Bellman–Ford checker replays every resulting node distance. Neither NetworkX
+arm is treated as the oracle for the other. The internal toy SAT and
+shortest-path fixtures from the original PR13 remain as negative-evidence
+regression tests, not as the research project's external evidence.
 
-The command above runs TWO real Python solver subprocesses on each fixture
-case in each domain (one correct and one intentionally defective), and writes
-raw stdout/stderr for every trial plus frozen inputs, pinned executable
-fingerprints, bundle digests, paired outcome/negative evidence, and JSON reports.
+## Reproduction: actual upstream executables
 
-To execute your own **trusted** SatSolv and Kissat binaries, create a plan
-with \`kind: "sat"\`, \`left.name: "SatSolv"\`,
-\`right.name: "Kissat"\` and their real executable paths. Do not substitute
-Git branches, labels, or mutable aliases for a pinned binary hash.
-Each tool's \`argv\` must contain an absolute executable in position 0 and
-exactly one \`"{input}"\` placeholder; optional \`"{seed}"\` can be used.
-The fixture's plan under \`sat/plan.json\` illustrates all fields.
-Use a fresh output directory and explicit execution approval:
+```bash
+python -m pip install -e '.[dev,case_studies]'
+python -m researchforge.networkx_case_demo --output /tmp/rf-networkx-case
+rf cases verify --bundle /tmp/rf-networkx-case/raw-bundle
+```
 
-\`\`\`bash
-rf cases run --plan /path/to/your/plan.json \
-  --output /path/to/new/bundle --approve-trusted-local
-rf cases verify --bundle /path/to/new/bundle
-\`\`\`
+The demo creates a **new directory only** and refuses to overwrite. Each arm
+executes an actual separate Python subprocess that imports the installed
+NetworkX package, checks `nx.__version__ == "3.6.1"`, calls its named
+algorithm, and prints a normalized JSON distances object.
 
-To evaluate another algorithm domain, wrap each ADES-style executable so it
-prints a *single JSON object* with exact distances for every node, e.g.
-\`{"distances":{"s":0,"a":2,"t":3,"isolated":null}}\`.
-Use \`kind: "shortest_path"\` and a graph input
-\`{"nodes":["s","a","t"],"source":"s","edges":[["s","a",2],["a","t",3]]}\`.
-Inputs are bounded, directed, nonnegative weighted graphs with integer weights,
-and the independent verifier uses Bellman-Ford. This is an original interface
-adapter; it does **not** modify the ADES repository or claim its native
-command-line interface already matches this schema.
+It creates **12 deterministic graph cases** across chain, disconnected,
+zero-weight, parallel-edge, directed cycle, and seeded sparse graph families
+with sizes up to 30 nodes. Inputs include graph and source identity hashes,
+case and family IDs and an independent reference verifier. Correct output
+has every node mapped to its integer shortest distance or `null` when
+unreachable.
 
-## Independent checks and scoring
+The `rf cases` infrastructure records both complete raw stdout/stderr
+logs, subprocess exit codes, bounded wall times, per-case correctness,
+original argv, original execution root, Python binary digest, wrapper script
+digest, a pinned library version declaration, frozen input digests, seed,
+and bundle digest. Raw artifacts are independently verified offline, even
+after moving the bundle to a different directory.
 
-- DIMACS CNF headers, clauses, variable ranges and file limits are parsed
-  independently; SAT assignments are checked against EVERY clause.
-- A declared UNSAT result with at most 16 variables is independently verified
-  by exhaustive search. Large-instance UNSAT is
-  \`UNVERIFIED_UNSAT\`, NOT certified solved, unless a future independently
-  checked proof-validation mechanism is implemented.
-- Wrong SAT models, false small UNSAT, bad graph distances, inconsistent
-  solver exits and malformed/truncated output do **not** receive solved credit.
-- Scores are case-ID paired; the report includes certified solved per side,
-  SAT/UNSAT category, benchmark family, discordant status, PAR-2-like
-  summed seconds (unsolved or invalid = 2 * cutoff), and a seeded paired
-  solved-status bootstrap. This bootstrap is descriptive, not statistical
-  proof of broad superiority. Hardware scheduling, sample choice and
-  multiplicity remain the researcher's responsibility.
-- For graph benchmarks, Bellman-Ford independently recomputes distances
-  (including disconnected nodes). The two fixture tools produce one
-  preserved false answer in each domain.
-- The runner executes argv without a shell and with a minimal inherited
-  environment, enforces per-trial timeout and output bounds, and separately
-  stores SHA-256 of stdout/stderr. Before every run it verifies executable
-  bytes match the frozen digest. It never accesses or alters the user's
-  SatSolv or ADES repositories.
-- Bundle replay is read-only and portable: it preserves the original execution root\n  in its receipt but permits relocating the bundled raw files. It requires exact raw logs and inputs,
-  validates digests, reconstructs every correctness result instead of
-  trusting the stored verdict, and rejects changed or missing files.
-  There is no unattended execution, network access or auto-merge.
+The library's wheel/package installation is **version pinned but its
+installed package bytes are not independently supply-chain attested**.
+`version_or_commit` is a declared identity and does not by itself prove
+the origin of an installed package. For high-assurance benchmarking,
+add wheel file checksums and reproducible build/environment attestations.
 
-## Raw logs and reproduction
+## CI and auditable outputs
 
-CI executes \`python -m researchforge.case_demo\` on Python 3.12 and 3.13,
-independently replays each resulting bundle, and publishes
-\`researchforge-pr13-case-studies-py*\` **GitHub Actions artifacts** containing
-the raw logs, checked input corpus, plans, receipts and verified reports.
-They are toy fixture evidence with intentional negative cases, NOT external
-SatSolv/Kissat timing data. Artifacts follow GitHub's configured retention,
-so archive any real research bundle to durable storage separately.
+GitHub Actions tests on Python 3.12 and 3.13. Each run:
 
-**For a genuine SatSolv/Kissat study:** pin both source commits, compiler
-flags, binaries, CPU/hardware scheduling, benchmark collection/selection and
-case hashes; specify CPU-time vs wall-time policy; run a representative
-frozen slice and *independently validate UNSAT proofs*. This PR's bounded
-exhaustive checker alone does not certify large UNSAT instances. Supply
-independent proof logs for an expanded checker interface before counting
-those results as verified. A performance superiority claim is **NO-GO**
-until those raw runs, independent verification, and statistical qualifications
-are available.
+1. Installs optional `networkx==3.6.1`.
+2. Executes both upstream algorithms for every frozen graph, yielding
+   24 actual processes.
+3. Replays the complete raw logs through the separately implemented
+   Bellman–Ford oracle.
+4. Uploads the plan, raw stdout/stderr, input snapshots, hashes and reports
+   under `researchforge-networkx-pr13-py3.12` and
+   `researchforge-networkx-pr13-py3.13` artifacts.
 
-This is trusted-local, not a hostile-code security sandbox. A locally mutable
-receipt with consistent digests is not independent execution attestation;
-replay checks local self-consistency and correctness of small instances.
+The original real-process **toy** fixture demonstration remains in CI as an
+adversarial check for bad answers and corrupt bundles.
+
+## Trust, validity and claim boundaries
+
+The exported results are **correctness and integration evidence**, not
+evidence that one external algorithm is faster across a meaningful benchmark
+population. The corpus is intentionally small and the recorded wall time
+includes Python interpreter startup, import costs, and CI scheduling.
+The two algorithms belong to the same upstream project and are not
+independent organizations or software vendors.
+
+The paired report contains certified solved counts, failures, paired
+discordance, per-family scores, PAR-2-like timing totals and descriptive
+paired solved-status bootstrap intervals; none alone establishes
+population-level or statistically significant algorithm superiority.
+
+The `case-plan` schema and explicit trusted-local command remain available:
+
+```bash
+rf contracts schema --name case-plan
+rf cases run --plan /path/to/plan.json --output /tmp/unique-output --approve-trusted-local
+rf cases verify --bundle /tmp/unique-output
+```
+
+Executing arbitrary trusted-local commands is **not a security sandbox**.
+The replay validates local self-consistency and mathematical correctness
+on these inputs; it is not cryptographic external attestation of runtime
+measurement. GitHub artifact availability is subject to workflow retention.
+
+No upstream repository, dependency source, or unrelated project was modified.
