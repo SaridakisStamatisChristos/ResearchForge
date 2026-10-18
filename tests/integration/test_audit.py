@@ -81,14 +81,14 @@ def test_frozen_final_and_selection_events(tmp_path: Path) -> None:
     )
     report = audit_claims(batch, campaign=root)
     assert [item["status"] for item in report["claims"]] == [
-        "SUPPORTED",
+        "VERIFIED",
         "CONTRADICTED",
         "OBSERVED",
         "INCONCLUSIVE",
         "UNVERIFIED",
     ]
     assert report["claims"][1]["conflicts"] == ["actual=FINAL_SUPPORTED"]
-    assert report["counts"]["SUPPORTED"] == 1
+    assert report["counts"]["VERIFIED"] == 1
     assert "not peer review" in markdown_report(report).lower()
     file = tmp_path / "claims.json"
     file.write_bytes(canonical_json(batch.model_dump(mode="json")))

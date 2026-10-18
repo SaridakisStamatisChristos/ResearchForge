@@ -24,7 +24,7 @@ from researchforge.literature_archive import LiteratureArchiveError, read_snapsh
 
 ClaimKind = Literal["final_status", "qualification_status", "literature_doi"]
 AuditStatus = Literal[
-    "OBSERVED", "SUPPORTED", "CONTRADICTED", "INCONCLUSIVE", "UNVERIFIED", "NOT_EVALUATED"
+    "OBSERVED", "VERIFIED", "CONTRADICTED", "INCONCLUSIVE", "UNVERIFIED", "NOT_EVALUATED"
 ]
 MAX_INPUT_BYTES = 1_048_576
 
@@ -200,9 +200,9 @@ def _campaign_claim(
             )
         return _result(
             claim,
-            "SUPPORTED",
+            "VERIFIED",
             used=[sha],
-            note="Only the bounded, replayed final decision is supported; no general superiority",
+            note="Only the typed frozen final-status predicate was replayed; claim prose is not validated",
         )
     # The append-only ledger validates identity and integrity, but does not
     # independently establish statistical or scientific merit.
@@ -299,7 +299,7 @@ def audit_claims(
         status: sum(item["status"] == status for item in entries)
         for status in (
             "OBSERVED",
-            "SUPPORTED",
+            "VERIFIED",
             "CONTRADICTED",
             "INCONCLUSIVE",
             "UNVERIFIED",
@@ -312,7 +312,8 @@ def audit_claims(
         "claims": entries,
         "counts": counts,
         "limitations": [
-            "A mechanically supported final decision is not independent scientific validation",
+            "A mechanically verified final predicate is not independent scientific validation",
+            "Free-text claim wording is not semantically checked by the auditor",
             "A qualified candidate is not a confirmatory success",
             "Scholarly source metadata is not evidence that paper claims are correct",
             "Hash-chain and snapshot integrity do not defeat a malicious local administrator",

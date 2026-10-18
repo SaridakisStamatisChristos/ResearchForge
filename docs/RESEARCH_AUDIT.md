@@ -14,8 +14,9 @@ optional "subject_id", and "evidence" references of the form
 Supported checks:
 - final_status: expected FINAL_SUPPORTED, FINAL_NOT_SUPPORTED or FINAL_INCONCLUSIVE.
   It requires the exact FINAL_EVALUATED event and independently replayed final
-  evaluation. SUPPORTED means only that the *predeclared bounded final policy*
-  returned the stated status; it does not claim external statistical significance.
+  evaluation. VERIFIED means only that the *typed frozen final-status predicate* matches
+  an independently replayed final policy result. Free-text claim wording is
+  not semantically verified, and scientific significance is not established.
 - qualification_status: expected QUALIFIED, REJECTED or INCONCLUSIVE,
   subject_id is the candidate ID. The latest decision's exact event hash is
   required; this can establish OBSERVED, not confirmatory support.
@@ -25,7 +26,7 @@ Supported checks:
   discoverability. No matching item gives INCONCLUSIVE, never proof of absence.
 
 Each result lists used/missing hashes and detected contradictions, with statuses
-OBSERVED, SUPPORTED, CONTRADICTED, INCONCLUSIVE, UNVERIFIED and NOT_EVALUATED.
+OBSERVED, VERIFIED, CONTRADICTED, INCONCLUSIVE, UNVERIFIED and NOT_EVALUATED.
 Unknown evidence IDs fail closed; duplicate claim IDs, references, malformed
 JSON, NaN/Inf, invalid DOI or wrong link types are rejected. Corrupt campaign
 ledgers return exit code 6. Input errors return 2. A read-only audit reporting
