@@ -17,7 +17,7 @@ NETWORKX_VERSION = "3.6.1"
 
 
 def solve(input_path: Path, algorithm: str) -> dict[str, int | None]:
-    import networkx as nx
+    import networkx as nx  # type: ignore[import-untyped]  # NetworkX lacks bundled stubs
 
     if nx.__version__ != NETWORKX_VERSION:
         raise RuntimeError("NetworkX dependency version does not match pinned case-study version")
