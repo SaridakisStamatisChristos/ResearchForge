@@ -7,7 +7,6 @@ Graph paths are checked against a separate Bellman-Ford implementation.
 from __future__ import annotations
 
 import json
-import math
 import re
 from typing import Any, Literal
 
@@ -171,7 +170,10 @@ def read_graph(data: bytes) -> tuple[tuple[str, ...], str, list[tuple[str, str, 
             not isinstance(nodes, list)
             or len(nodes) == 0
             or len(nodes) > 256
-            or not all(isinstance(n, str) and re.fullmatch(r"[A-Za-z0-9._-]{1,64}", n) for n in nodes)
+            or not all(
+                isinstance(n, str) and re.fullmatch(r"[A-Za-z0-9._-]{1,64}", n)
+                for n in nodes
+            )
             or len(nodes) != len(set(nodes))
             or not isinstance(source, str)
             or source not in nodes
