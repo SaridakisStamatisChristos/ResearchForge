@@ -335,10 +335,16 @@ def test_hypothesis_forge_admission_is_gated_and_traceable(
     assert runner.run(role="dev", approved=True, candidate_id="overfit")["status"] == "SUCCEEDED"
     with pytest.raises(ExecutionRefused, match="Hypothesis attempt budget"):
         runner.run(role="dev", approved=True, candidate_id="good")
-    assert len([
-        event for event in ledger.read_events("selection-001")
-        if event.event_type == "ATTEMPT_STARTED"
-    ]) == 2
+    assert (
+        len(
+            [
+                event
+                for event in ledger.read_events("selection-001")
+                if event.event_type == "ATTEMPT_STARTED"
+            ]
+        )
+        == 2
+    )
 
     mismatched = design.model_copy(
         update={"hypothesis_id": "forge-002", "expected_metric": "other"}
