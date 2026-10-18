@@ -211,6 +211,14 @@ qualification and sealed final pipelines remain offline and unchanged. The
 `[literature]` extra is optional and core installation remains API-key free.
 CI uses `httpx.MockTransport` and has **no live provider tests**.
 
+OpenAlex allows basic anonymous retrieval, but its current API requires a free
+API key for cursor paging after the first page. To enable this without putting
+credentials in a URL, set `OPENALEX_API_KEY` in your local environment before
+running a live command. The adapter uses a bearer header and does not save or
+print that header. Without a key, deeper OpenAlex retrieval can return
+`PARTIAL` on provider refusal; ResearchForge will not claim it completed.
+
+
 Retrievals record provider, endpoint and parameters, access timestamp,
 individual response SHA-256s, result counts, next cursor, HTTP status, retry
 count, Retry-After, failure reason and `COMPLETE`/`PARTIAL`/`UNKNOWN`
