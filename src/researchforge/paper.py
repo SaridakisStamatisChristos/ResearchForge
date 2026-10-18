@@ -4,6 +4,7 @@ This is a mechanical draft, NOT a literature review, novelty determination,
 statistical certification, LLM manuscript, or semantic validation of free text.
 Only independently replayed final-predicate evidence populates measured tables.
 """
+
 from __future__ import annotations
 
 import html
