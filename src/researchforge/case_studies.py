@@ -43,6 +43,7 @@ class ToolSpec(StrictModel):
     argv: list[str] = Field(min_length=2, max_length=32)
     binary_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     version_or_commit: str = Field(min_length=1, max_length=160)
+    pinned_files: dict[str, str] = Field(default_factory=dict, max_length=8)
 
     @model_validator(mode="after")
     def checked_argv(self) -> ToolSpec:
@@ -58,6 +59,13 @@ class ToolSpec(StrictModel):
             )
         ):
             raise ValueError("Tool needs absolute executable and one {input}, no unknown tokens")
+        for pinned_path, expected_sha in self.pinned_files.items():
+            if (
+                not Path(pinned_path).is_absolute()
+                or pinned_path not in self.argv
+                or not re.fullmatch(r"[a-f0-9]{64}", expected_sha)
+            ):
+                raise ValueError("Each pinned auxiliary source must be an absolute argv file")
         return self
 
 
@@ -158,6 +166,12 @@ def _binary_sha(tool: ToolSpec) -> str:
     result = digest_bytes(binary.read_bytes())
     if result != tool.binary_sha256:
         raise CaseExecutionRefused("Executable bytes do not match frozen SHA-256")
+    for pinned_path, expected in tool.pinned_files.items():
+        auxiliary = Path(pinned_path)
+        if not auxiliary.is_file() or auxiliary.stat().st_size > MAX_PLAN:
+            raise CaseExecutionRefused("Missing or oversized pinned auxiliary source")
+        if digest_bytes(auxiliary.read_bytes()) != expected:
+            raise CaseExecutionRefused("Pinned auxiliary source digest changed")
     return result
 
 
@@ -316,6 +330,17 @@ def verify_bundle(folder: Path) -> dict[str, Any]:
                 if row is None:
                     raise CaseBundleError("Missing trial for case/tool pair")
                 base = f"logs/{item.case_id}/{tool.name}"
+                expected_input = (folder / "inputs" / f"{item.case_id}.{suffix}").resolve()
+                expected_argv = [
+                    str(expected_input)
+                    if word == "{input}"
+                    else str(plan.seed)
+                    if word == "{seed}"
+                    else word
+                    for word in tool.argv
+                ]
+                if row.get("argv") != expected_argv:
+                    raise CaseBundleError("Recorded argv contradicts frozen plan")
                 if (
                     row.get("stdout_path") != base + ".stdout"
                     or row.get("stderr_path") != base + ".stderr"
@@ -323,6 +348,8 @@ def verify_bundle(folder: Path) -> dict[str, Any]:
                     raise CaseBundleError("Log paths are not tied to exact pair")
                 stdout = _safe_file(folder, row["stdout_path"], maximum=MAX_OUTPUT)
                 stderr = _safe_file(folder, row["stderr_path"], maximum=MAX_OUTPUT)
+                if len(stdout) + len(stderr) > plan.max_output_bytes:
+                    raise CaseBundleError("Logs exceed frozen per-trial output bound")
                 if digest_bytes(stdout) != row.get("stdout_sha256") or digest_bytes(
                     stderr
                 ) != row.get("stderr_sha256"):
