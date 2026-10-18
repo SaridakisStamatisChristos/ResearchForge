@@ -250,16 +250,48 @@ class RunnerService:
                 ids.append(attempt_id)
             return ids
 
-    def run(self, *, role: str, approved: bool) -> dict[str, Any]:
+    def run(self, *, role: str, approved: bool, candidate_id: str | None = None) -> dict[str, Any]:
         if not approved:
             raise ExecutionRefused("Explicit --approve-trusted-local flag required")
         with self._lease():
-            return self._run_locked(role=role)
+            return self._run_locked(role=role, candidate_id=candidate_id)
 
-    def _run_locked(self, *, role: str) -> dict[str, Any]:
+    def _run_locked(self, *, role: str, candidate_id: str | None = None) -> dict[str, Any]:
         if role not in ("dev", "qualification"):
             raise ExecutionRefused("Final split is sealed until PR06")
         manifest, snapshot, evaluator_root, repository, ledger = self._ready()
+        candidate_key = candidate_id if candidate_id is not None else "baseline"
+        commit, tree = snapshot.repository_commit, snapshot.repository_tree
+        if candidate_id is not None:
+            from researchforge.application.qualification import QualificationService
+
+            _, candidates = QualificationService.registry(ledger, snapshot.campaign_id)
+            registered = candidates.get(candidate_id)
+            if registered is None:
+                raise ExecutionRefused("Candidate must be registered before execution")
+            commit, tree = registered["commit"], registered["tree"]
+            if (
+                _git(repository, "rev-parse", "--verify", f"{commit}^{{commit}}") != commit
+                or _git(repository, "rev-parse", f"{commit}^{{tree}}") != tree
+            ):
+                raise ExecutionRefused("Registered candidate OIDs are no longer verifiable")
+            if role == "qualification":
+                starts: dict[str, dict[str, Any]] = {}
+                has_dev = False
+                for event in ledger.read_events(snapshot.campaign_id):
+                    if event.event_type == "ATTEMPT_STARTED":
+                        starts[event.subject_id] = json.loads(ledger.cas.get(event.payload_ref))
+                    elif event.event_type == "ATTEMPT_SUCCEEDED":
+                        previous_start = starts.get(event.subject_id, {})
+                        if (
+                            previous_start.get("candidate_id") == candidate_id
+                            and previous_start.get("role") == "dev"
+                        ):
+                            has_dev = True
+                if not has_dev:
+                    raise ExecutionRefused(
+                        "Candidate must have a successful development evaluation"
+                    )
         if self._open_attempts(ledger, snapshot.campaign_id):
             raise ExecutionRefused("Unresolved attempt: adjudicate UNKNOWN; no auto replay")
         previous = ledger.read_events(snapshot.campaign_id)
@@ -288,13 +320,14 @@ class RunnerService:
         if not worktree.parent.resolve().is_relative_to(self.campaign.root):
             raise ExecutionRefused("Worktree path escapes campaign")
         replacements = {
+            "{candidate_dir}": str(worktree),
             "{split_file}": str(dataset),
             "{worktree}": str(worktree),
             "{evaluator_dir}": str(evaluator_root),
         }
         argv: list[str] = []
         for token in spec.argv:
-            for placeholder in ("{split_file}", "{worktree}", "{evaluator_dir}"):
+            for placeholder in ("{candidate_dir}", "{split_file}", "{worktree}", "{evaluator_dir}"):
                 if placeholder in token and token != placeholder:
                     raise ExecutionRefused("Placeholders must occupy entire argv elements")
             if "{" in token or "}" in token:
@@ -311,8 +344,9 @@ class RunnerService:
             {
                 "attempt_id": attempt_id,
                 "role": role,
-                "commit": snapshot.repository_commit,
-                "tree": snapshot.repository_tree,
+                "candidate_id": candidate_key,
+                "commit": commit,
+                "tree": tree,
                 "split_sha256": split.sha256,
                 "evaluator_sha256": snapshot.evaluator_source_sha256,
                 "environment_sha256": snapshot.environment_sha256,
@@ -337,11 +371,11 @@ class RunnerService:
                 "add",
                 "--detach",
                 str(worktree),
-                snapshot.repository_commit,
+                commit,
             )
             if (
-                _git(worktree, "rev-parse", "HEAD") != snapshot.repository_commit
-                or _git(worktree, "rev-parse", "HEAD^{tree}") != snapshot.repository_tree
+                _git(worktree, "rev-parse", "HEAD") != commit
+                or _git(worktree, "rev-parse", "HEAD^{tree}") != tree
             ):
                 raise ValueError("Exact worktree commit/tree mismatch")
             # Export only minimal host variables, not inherited API keys/credentials.
@@ -365,6 +399,8 @@ class RunnerService:
                     "RF_WORKTREE": str(worktree),
                     "RF_SPLIT_FILE": str(dataset),
                     "RF_SEED": str(manifest.seed),
+                    "RF_CANDIDATE_ID": candidate_key,
+                    "RF_CANDIDATE_COMMIT": commit,
                     "PYTHONIOENCODING": "utf-8",
                 }
             )
@@ -384,8 +420,8 @@ class RunnerService:
             elif code != 0:
                 reason = "NONZERO_EXIT"
             elif (
-                _git(worktree, "rev-parse", "HEAD") != snapshot.repository_commit
-                or _git(worktree, "rev-parse", "HEAD^{tree}") != snapshot.repository_tree
+                _git(worktree, "rev-parse", "HEAD") != commit
+                or _git(worktree, "rev-parse", "HEAD^{tree}") != tree
                 or subprocess.run(
                     ["git", "-C", str(worktree), "diff", "--quiet", "HEAD"],
                     capture_output=True,
@@ -442,6 +478,7 @@ class RunnerService:
         ledger.append_event(snapshot.campaign_id, sequence, event_type, attempt_id, payload)
         return {
             "attempt_id": attempt_id,
+            "candidate_id": candidate_key,
             "status": status,
             "reason": reason,
             "event_type": event_type,

@@ -7,10 +7,11 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from researchforge import __version__
 from researchforge.application.campaigns import CampaignService, FrozenStateError, ManifestError
+from researchforge.application.qualification import HypothesisSpec, QualificationService
 from researchforge.application.runner import ExecutionRefused, RunnerIntegrityError, RunnerService
 from researchforge.domain.envelope import ApiError, ResponseEnvelope
 from researchforge.domain.models import (
@@ -27,6 +28,10 @@ campaign = typer.Typer(help="Initialize, validate and freeze local campaigns.")
 app.add_typer(campaign, name="campaign")
 run_commands = typer.Typer(help="Trusted-local evaluator execution; not a sandbox.")
 app.add_typer(run_commands, name="run")
+hypothesis_commands = typer.Typer(help="Record falsifiable hypotheses.")
+app.add_typer(hypothesis_commands, name="hypothesis")
+candidate_commands = typer.Typer(help="Register Git-identified candidates.")
+app.add_typer(candidate_commands, name="candidate")
 
 
 def version_callback(value: bool) -> None:
@@ -139,10 +144,13 @@ def run_evaluate(
     campaign_path: Annotated[Path, typer.Option("--campaign")],
     split: Annotated[str, typer.Option("--split")],
     approve_trusted_local: Annotated[bool, typer.Option("--approve-trusted-local")] = False,
+    candidate_id: Annotated[str | None, typer.Option("--candidate")] = None,
 ) -> None:
     """Run an explicitly approved dev/qualification evaluator (never final)."""
     try:
-        outcome = RunnerService(campaign_path).run(role=split, approved=approve_trusted_local)
+        outcome = RunnerService(campaign_path).run(
+            role=split, approved=approve_trusted_local, candidate_id=candidate_id
+        )
         state = outcome["status"]
         response = ResponseEnvelope(
             status="OK" if state == "SUCCEEDED" else "UNKNOWN" if state == "UNKNOWN" else "FAILED",
@@ -168,6 +176,65 @@ def run_recover(
     try:
         ids = RunnerService(campaign_path).recover_unknown(approved=mark_unknown)
         typer.echo(ResponseEnvelope(status="OK", data={"marked_unknown": ids}).model_dump_json())
+    except ExecutionRefused as exc:
+        typer.echo(f"REFUSED: {exc}", err=True)
+        raise typer.Exit(code=3) from exc
+    except RunnerIntegrityError as exc:
+        typer.echo(f"CORRUPT: {exc}", err=True)
+        raise typer.Exit(code=6) from exc
+
+
+@hypothesis_commands.command("add")
+def hypothesis_add(
+    campaign_path: Annotated[Path, typer.Option("--campaign")],
+    file: Annotated[Path, typer.Option("--file")],
+) -> None:
+    """Append a human-authored hypothesis; never execute it."""
+    try:
+        spec = HypothesisSpec.model_validate_json(file.read_bytes())
+        outcome = QualificationService(campaign_path).add_hypothesis(spec)
+        typer.echo(ResponseEnvelope(status="OK", data=outcome).model_dump_json())
+    except (OSError, ValueError, ValidationError) as exc:
+        typer.echo(f"INVALID_INPUT: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    except ExecutionRefused as exc:
+        typer.echo(f"REFUSED: {exc}", err=True)
+        raise typer.Exit(code=3) from exc
+    except RunnerIntegrityError as exc:
+        typer.echo(f"CORRUPT: {exc}", err=True)
+        raise typer.Exit(code=6) from exc
+
+
+@candidate_commands.command("register")
+def candidate_register(
+    campaign_path: Annotated[Path, typer.Option("--campaign")],
+    candidate_id: Annotated[str, typer.Option("--id")],
+    hypothesis_id: Annotated[str, typer.Option("--hypothesis")],
+    commit: Annotated[str, typer.Option("--commit")],
+) -> None:
+    """Pin an existing full Git commit without updating source branches."""
+    try:
+        outcome = QualificationService(campaign_path).register(
+            candidate_id=candidate_id, hypothesis_id=hypothesis_id, commit=commit
+        )
+        typer.echo(ResponseEnvelope(status="OK", data=outcome).model_dump_json())
+    except (ExecutionRefused, ManifestError) as exc:
+        typer.echo(f"REFUSED: {exc}", err=True)
+        raise typer.Exit(code=3) from exc
+    except RunnerIntegrityError as exc:
+        typer.echo(f"CORRUPT: {exc}", err=True)
+        raise typer.Exit(code=6) from exc
+
+
+@app.command("qualify")
+def qualify(
+    campaign_path: Annotated[Path, typer.Option("--campaign")],
+    candidate_id: Annotated[str, typer.Option("--candidate")],
+) -> None:
+    """Replay evidence and append an immutable selection-stage decision."""
+    try:
+        outcome = QualificationService(campaign_path).qualify(candidate_id)
+        typer.echo(ResponseEnvelope(status="OK", data=outcome).model_dump_json())
     except ExecutionRefused as exc:
         typer.echo(f"REFUSED: {exc}", err=True)
         raise typer.Exit(code=3) from exc
