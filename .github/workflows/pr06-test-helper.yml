@@ -1,0 +1,26 @@
+name: Temporary PR06 test diagnostics
+on:
+  push:
+    branches: ["pr/06-statistics-sealed-final"]
+permissions:
+  contents: write
+jobs:
+  diagnose:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e '.[dev]'
+      - name: Record traceback for corrective development
+        run: |
+          pytest -q --tb=short > .pr06_pytest_failures.txt 2>&1 || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .pr06_pytest_failures.txt
+          git commit -m "chore(pr06): capture temporary failure tracebacks"
+          git push origin HEAD:pr/06-statistics-sealed-final
