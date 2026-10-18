@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "EventActor": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "local_process",
+            "human",
+            "agent"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "title": "EventActor",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "actor": {
+      "$ref": "#/$defs/EventActor"
+    },
+    "campaign_id": {
+      "minLength": 1,
+      "title": "Campaign Id",
+      "type": "string"
+    },
+    "event_id": {
+      "format": "uuid",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "event_schema": {
+      "const": "1.0",
+      "title": "Event Schema",
+      "type": "string"
+    },
+    "event_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Event Sha256",
+      "type": "string"
+    },
+    "event_type": {
+      "minLength": 1,
+      "title": "Event Type",
+      "type": "string"
+    },
+    "occurred_at_utc": {
+      "format": "date-time",
+      "title": "Occurred At Utc",
+      "type": "string"
+    },
+    "payload_ref": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "previous_event_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Previous Event Sha256"
+    },
+    "sequence": {
+      "minimum": 1,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "subject_id": {
+      "minLength": 1,
+      "title": "Subject Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_schema",
+    "event_id",
+    "campaign_id",
+    "sequence",
+    "event_type",
+    "occurred_at_utc",
+    "actor",
+    "subject_id",
+    "payload_ref",
+    "previous_event_sha256",
+    "event_sha256"
+  ],
+  "title": "EvidenceEvent",
+  "type": "object"
+}

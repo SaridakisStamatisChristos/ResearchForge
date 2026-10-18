@@ -1,0 +1,252 @@
+{
+  "$defs": {
+    "Budget": {
+      "additionalProperties": false,
+      "properties": {
+        "max_attempts": {
+          "exclusiveMinimum": 0,
+          "title": "Max Attempts",
+          "type": "integer"
+        },
+        "max_hypotheses": {
+          "exclusiveMinimum": 0,
+          "title": "Max Hypotheses",
+          "type": "integer"
+        },
+        "max_wall_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Max Wall Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_hypotheses",
+        "max_attempts",
+        "max_wall_seconds"
+      ],
+      "title": "Budget",
+      "type": "object"
+    },
+    "EvaluatorSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "argv": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Argv",
+          "type": "array"
+        },
+        "cwd": {
+          "minLength": 1,
+          "title": "Cwd",
+          "type": "string"
+        },
+        "max_output_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Max Output Bytes",
+          "type": "integer"
+        },
+        "result_schema": {
+          "const": "evaluator-result-v1",
+          "title": "Result Schema",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "argv",
+        "cwd",
+        "timeout_seconds",
+        "max_output_bytes",
+        "result_schema"
+      ],
+      "title": "EvaluatorSpec",
+      "type": "object"
+    },
+    "MetricSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "enum": [
+            "min",
+            "max"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "unit": {
+          "minLength": 1,
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "direction",
+        "unit"
+      ],
+      "title": "MetricSpec",
+      "type": "object"
+    },
+    "QualificationPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_equal": {
+          "title": "Allow Equal",
+          "type": "boolean"
+        },
+        "baseline_required": {
+          "title": "Baseline Required",
+          "type": "boolean"
+        },
+        "correctness_checks": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Correctness Checks",
+          "type": "array"
+        },
+        "minimum_absolute_improvement": {
+          "minimum": 0,
+          "title": "Minimum Absolute Improvement",
+          "type": "number"
+        },
+        "name": {
+          "const": "strict-improvement-v1",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "baseline_required",
+        "minimum_absolute_improvement",
+        "correctness_checks",
+        "allow_equal"
+      ],
+      "title": "QualificationPolicy",
+      "type": "object"
+    },
+    "RepositoryBase": {
+      "additionalProperties": false,
+      "properties": {
+        "commit": {
+          "minLength": 1,
+          "title": "Commit",
+          "type": "string"
+        },
+        "repository": {
+          "minLength": 1,
+          "title": "Repository",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository",
+        "commit"
+      ],
+      "title": "RepositoryBase",
+      "type": "object"
+    },
+    "Splits": {
+      "additionalProperties": false,
+      "properties": {
+        "dev": {
+          "minLength": 1,
+          "title": "Dev",
+          "type": "string"
+        },
+        "final": {
+          "minLength": 1,
+          "title": "Final",
+          "type": "string"
+        },
+        "qualification": {
+          "minLength": 1,
+          "title": "Qualification",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dev",
+        "qualification",
+        "final"
+      ],
+      "title": "Splits",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "base": {
+      "$ref": "#/$defs/RepositoryBase"
+    },
+    "budget": {
+      "$ref": "#/$defs/Budget"
+    },
+    "campaign_id": {
+      "minLength": 1,
+      "title": "Campaign Id",
+      "type": "string"
+    },
+    "evaluation": {
+      "$ref": "#/$defs/EvaluatorSpec"
+    },
+    "execution_trust": {
+      "const": "local_trusted_only",
+      "title": "Execution Trust",
+      "type": "string"
+    },
+    "metric": {
+      "$ref": "#/$defs/MetricSpec"
+    },
+    "objective": {
+      "minLength": 1,
+      "title": "Objective",
+      "type": "string"
+    },
+    "qualification_policy": {
+      "$ref": "#/$defs/QualificationPolicy"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "minimum": 0,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "splits": {
+      "$ref": "#/$defs/Splits"
+    }
+  },
+  "required": [
+    "schema_version",
+    "campaign_id",
+    "objective",
+    "base",
+    "metric",
+    "evaluation",
+    "splits",
+    "budget",
+    "qualification_policy",
+    "seed",
+    "execution_trust"
+  ],
+  "title": "CampaignManifest",
+  "type": "object"
+}

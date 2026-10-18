@@ -1,0 +1,108 @@
+{
+  "$defs": {
+    "Correctness": {
+      "additionalProperties": false,
+      "properties": {
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "validator_id": {
+          "minLength": 1,
+          "title": "Validator Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "passed",
+        "validator_id"
+      ],
+      "title": "Correctness",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "correctness": {
+      "$ref": "#/$defs/Correctness"
+    },
+    "details": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Details",
+      "type": "object"
+    },
+    "direction": {
+      "enum": [
+        "min",
+        "max"
+      ],
+      "title": "Direction",
+      "type": "string"
+    },
+    "metric": {
+      "minLength": 1,
+      "title": "Metric",
+      "type": "string"
+    },
+    "sample_count": {
+      "exclusiveMinimum": 0,
+      "title": "Sample Count",
+      "type": "integer"
+    },
+    "samples_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Samples Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "const": "complete",
+      "title": "Status",
+      "type": "string"
+    },
+    "unit": {
+      "minLength": 1,
+      "title": "Unit",
+      "type": "string"
+    },
+    "value": {
+      "title": "Value",
+      "type": "number"
+    }
+  },
+  "required": [
+    "schema_version",
+    "status",
+    "metric",
+    "direction",
+    "value",
+    "unit",
+    "sample_count",
+    "samples_sha256",
+    "correctness"
+  ],
+  "title": "EvaluationResult",
+  "type": "object"
+}
