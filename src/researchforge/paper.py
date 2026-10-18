@@ -301,12 +301,12 @@ def build_paper(
 
 def _safe(value: Any) -> str:
     """Escape untrusted provider, author and claim strings in generated Markdown."""
-    value = str(value) if value is not None else "not supplied"
-    value = re.sub(r"[\x00-\x1f\x7f]", " ", value)
-    value = html.escape(value, quote=False)
+    rendered: str = str(value) if value is not None else "not supplied"
+    rendered = re.sub(r"[\x00-\x1f\x7f]", " ", rendered)
+    rendered = html.escape(rendered, quote=False)
     for token in ("\\", "|", "`", "[", "]", "*", "_", "!", "#", "<", ">"):
-        value = value.replace(token, "\\" + token)
-    return value
+        rendered = rendered.replace(token, "\\" + token)
+    return rendered
 
 
 def render_markdown(paper: dict[str, Any]) -> str:
