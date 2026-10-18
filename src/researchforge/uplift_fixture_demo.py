@@ -83,8 +83,7 @@ def fixture_plan(root: Path) -> Path:
         "allowed_environment_keys": [],
         "tasks": tasks,
         "skills": {
-            k: {"path": f"skills/{k}.md", "sha256": digest_bytes(v)}
-            for k, v in sources.items()
+            k: {"path": f"skills/{k}.md", "sha256": digest_bytes(v)} for k, v in sources.items()
         },
         "arms": [
             arm("control", "control", []),
