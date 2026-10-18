@@ -3,6 +3,7 @@
 This exercises real Python subprocesses with actual input/output bytes. It is NOT
 a SatSolv/Kissat comparison or an ADES external benchmark.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -14,7 +15,7 @@ from typing import Any
 from researchforge.case_studies import run_cases, verify_bundle
 from researchforge.domain.serialization import canonical_json, digest_bytes
 
-SAT_PROGRAM = r'''
+SAT_PROGRAM = r"""
 import sys
 from itertools import product
 from pathlib import Path
@@ -48,9 +49,9 @@ else:
     print("v " + " ".join(str(i if solution[i] else -i)
                          for i in range(1, nvars + 1)) + " 0")
 sys.exit(10)
-'''
+"""
 
-GRAPH_PROGRAM = r'''
+GRAPH_PROGRAM = r"""
 import json
 import sys
 from pathlib import Path
@@ -77,7 +78,7 @@ while unvisited:
 if mode == "intentionally-wrong" and "trap" in path and dist.get("t") is not None:
     dist["t"] += 1
 print(json.dumps({"distances": dist}, sort_keys=True))
-'''
+"""
 
 
 def _write(folder: Path, path: str, body: bytes) -> None:
@@ -134,12 +135,14 @@ def run_case_demo(root: Path) -> dict[str, Any]:
             suffix = "cnf" if kind == "sat" else "json"
             relpath = f"cases/{case_id}.{suffix}"
             _write(source, relpath, body)
-            cases.append({
-                "case_id": case_id,
-                "family": "toy-sat" if kind == "sat" else "toy-graph",
-                "input_path": relpath,
-                "input_sha256": digest_bytes(body),
-            })
+            cases.append(
+                {
+                    "case_id": case_id,
+                    "family": "toy-sat" if kind == "sat" else "toy-graph",
+                    "input_path": relpath,
+                    "input_sha256": digest_bytes(body),
+                }
+            )
         plan = {
             "schema_version": "1.0",
             "kind": kind,
