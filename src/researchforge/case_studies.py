@@ -380,10 +380,10 @@ def verify_bundle(folder: Path) -> dict[str, Any]:
             "limitations": [
                 "Runtime numbers are locally recorded wall times, not independently clock-verified",
                 "Small-suite bootstrap is descriptive and cannot establish population superiority",
-                "UNSAT above the bounded exhaustive-check limit remains UNVERIFIED without a proof checker",
+                "UNSAT above the exhaustive-check limit needs a separate independent proof checker",
                 "Incorrect or unverified outputs receive no certified solved credit",
-                "Local execution is not a security sandbox; local hashes cannot defeat malicious administrators",
-                "No SatSolv/Kissat or ADES executions are implied unless their exact binaries were run",
+                "Local execution is no security sandbox; administrators can alter local evidence",
+                "No SatSolv/Kissat or ADES result is claimed without running pinned binaries",
             ],
         }
     except (UnicodeError, OSError, ValueError, ValidationError) as exc:
