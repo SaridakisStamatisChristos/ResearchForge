@@ -9,13 +9,14 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import random
 import re
 from datetime import UTC, datetime
 from typing import Any, Literal, Protocol, cast
 from urllib.parse import quote, unquote, urlsplit
 
-from pydantic import Field, ValidationError
+from pydantic import Field, ValidationError, field_validator
 
 from researchforge.domain.models import StrictModel
 from researchforge.domain.serialization import canonical_json, digest_bytes
@@ -71,6 +72,13 @@ class LiteratureQuery(StrictModel):
     limit: int = Field(default=20, ge=1, le=MAX_LIMIT)
     page_size: int = Field(default=20, ge=1, le=50)
     max_pages: int = Field(default=MAX_PAGES, ge=1, le=MAX_PAGES)
+
+    @field_validator("text")
+    @classmethod
+    def meaningful_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Literature search text cannot be blank")
+        return value.strip()
 
 
 class LiteratureRecord(StrictModel):
@@ -265,11 +273,18 @@ class HttpSource:
                 raise LiteratureInputError(
                     "Install ResearchForge with the [literature] extra for live HTTP"
                 ) from exc
+            headers = {"User-Agent": "ResearchForge/0.1 (research metadata client)"}
+            if self.provider == "openalex":
+                key = os.environ.get("OPENALEX_API_KEY", "")
+                if key:
+                    if any(ord(char) < 33 for char in key):
+                        raise LiteratureInputError("Invalid OPENALEX_API_KEY value")
+                    headers["Authorization"] = f"Bearer {key}"
             client = httpx.AsyncClient(
                 timeout=httpx.Timeout(8.0),
                 follow_redirects=False,
                 trust_env=False,
-                headers={"User-Agent": "ResearchForge/0.1 (research metadata client)"},
+                headers=headers,
             )
         try:
             for attempt in range(3):
