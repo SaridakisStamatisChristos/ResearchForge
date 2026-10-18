@@ -174,6 +174,29 @@ def test_strict_schema_rejects_unpaired_or_path_escape(tmp_path: Path) -> None:
         read_plan(bad)
 
 
+def test_replay_rejects_argv_switch_after_rehashed_bundle(tmp_path: Path) -> None:
+    run_case_demo(tmp_path / "fixture")
+    folder = tmp_path / "fixture" / "sat" / "raw-bundle"
+    bundle_file = folder / "bundle.json"
+    original = json.loads(bundle_file.read_bytes())
+    original["rows"][0]["argv"] = ["/bin/false", "switch"]
+    changed = canonical_json(original)
+    bundle_file.write_bytes(changed)
+    (folder / "bundle.sha256").write_text(digest_bytes(changed) + "\n")
+    with pytest.raises(CaseBundleError, match="argv"):
+        verify_bundle(folder)
+
+
+def test_pinned_wrapper_source_drift_refuses_execution(tmp_path: Path) -> None:
+    run_case_demo(tmp_path / "fixture")
+    source = tmp_path / "fixture" / "sat"
+    wrapper = source / "toy_program.py"
+    wrapper.write_text(wrapper.read_text() + "\n# changed\n")
+    with pytest.raises(CaseExecutionRefused, match="auxiliary"):
+        run_cases(source / "plan.json", tmp_path / "refused", approved=True)
+    assert not (tmp_path / "refused").exists()
+
+
 def test_schema_is_publicly_exposed() -> None:
     result = CliRunner().invoke(app, ["contracts", "schema", "--name", "case-plan"])
     assert result.exit_code == 0, result.output
