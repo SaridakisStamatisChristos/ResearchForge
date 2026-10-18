@@ -335,7 +335,10 @@ class RunnerService:
             # Export only minimal host variables, not inherited API keys/credentials.
             env = {
                 key: val for key, val in os.environ.items()
-                if key in {"PATH", "SYSTEMROOT", "WINDIR", "LANG", "LC_ALL", "TMPDIR", "TEMP", "TMP"}
+                if key in {
+                    "PATH", "SYSTEMROOT", "WINDIR", "LANG",
+                    "LC_ALL", "TMPDIR", "TEMP", "TMP",
+                }
             }
             env.update({
                 "RF_WORKTREE": str(worktree),
