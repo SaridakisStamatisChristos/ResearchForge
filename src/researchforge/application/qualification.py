@@ -41,8 +41,7 @@ class QualificationService:
     @staticmethod
     def _selection_open(ledger: EventLedger, campaign_id: str) -> None:
         if any(
-            event.event_type == "FINAL_PLAN_FROZEN"
-            for event in ledger.read_events(campaign_id)
+            event.event_type == "FINAL_PLAN_FROZEN" for event in ledger.read_events(campaign_id)
         ):
             raise ExecutionRefused("Candidate selection closed by frozen final nomination")
 

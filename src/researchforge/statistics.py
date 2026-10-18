@@ -63,11 +63,14 @@ def paired_comparison(
         raise StatisticalInputError("Seed must be a nonnegative integer")
     if not math.isfinite(confidence) or not 0 < confidence < 1:
         raise StatisticalInputError("Confidence must be in (0, 1)")
-    if isinstance(resamples, bool) or not isinstance(resamples, int) or not 100 <= resamples <= 100_000:
+    if (
+        isinstance(resamples, bool)
+        or not isinstance(resamples, int)
+        or not 100 <= resamples <= 100_000
+    ):
         raise StatisticalInputError("Resample count must be between 100 and 100000")
     differences = [
-        (baseline[key] - candidate[key]) if direction == "min"
-        else (candidate[key] - baseline[key])
+        (baseline[key] - candidate[key]) if direction == "min" else (candidate[key] - baseline[key])
         for key in sorted(baseline)
     ]
     n = len(differences)

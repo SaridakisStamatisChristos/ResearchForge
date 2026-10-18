@@ -38,9 +38,7 @@ def experiment(tmp_path: Path) -> tuple[QualificationService, RunnerService, Fin
     source.mkdir()
     (source / "splits").mkdir()
     for role, ident in (("dev", "d"), ("qualification", "q"), ("final", "f")):
-        (source / "splits" / f"{role}.json").write_text(
-            json.dumps({"cases": [{"id": ident}]})
-        )
+        (source / "splits" / f"{role}.json").write_text(json.dumps({"cases": [{"id": ident}]}))
     (source / "evaluator.py").write_text(
         "import json,os,pathlib,sys,hashlib\n"
         "split=pathlib.Path(sys.argv[2])\n"
@@ -81,19 +79,19 @@ def experiment(tmp_path: Path) -> tuple[QualificationService, RunnerService, Fin
     raw.write_text(json.dumps(manifest))
     home = tmp_path / "campaign"
     CampaignService.init(raw, home).freeze()
-    (repo / "scores.json").write_text(json.dumps({
-        "dev": 7, "qualification": 8, "final": 8
-    }))
+    (repo / "scores.json").write_text(json.dumps({"dev": 7, "qualification": 8, "final": 8}))
     _git(repo, "add", ".")
     _git(repo, "commit", "-qm", "good candidate")
     candidate_commit = _git(repo, "rev-parse", "HEAD")
     selection = QualificationService(home)
-    selection.add_hypothesis(HypothesisSpec(
-        hypothesis_id="h1",
-        proposition="reduced errors",
-        intervention="adjust scores",
-        falsifier="qualification fails",
-    ))
+    selection.add_hypothesis(
+        HypothesisSpec(
+            hypothesis_id="h1",
+            proposition="reduced errors",
+            intervention="adjust scores",
+            falsifier="qualification fails",
+        )
+    )
     selection.register(candidate_id="good", hypothesis_id="h1", commit=candidate_commit)
     return selection, RunnerService(home), FinalService(home), repo
 
@@ -139,8 +137,15 @@ def test_real_final_one_shot_sealed_and_report(
     assert "FINAL_SUPPORTED" in md and "not establish population superiority" in md
     out = tmp_path / "report.md"
     cli = CliRunner()
-    args = ["report", "--campaign", str(runner.campaign.root),
-            "--format", "md", "--output", str(out)]
+    args = [
+        "report",
+        "--campaign",
+        str(runner.campaign.root),
+        "--format",
+        "md",
+        "--output",
+        str(out),
+    ]
     assert cli.invoke(app, args).exit_code == 0
     assert out.read_text() == md
     assert cli.invoke(app, args).exit_code == 2
@@ -185,54 +190,68 @@ def test_forged_final_conclusion_rejected(
     final.nominate("good")
     final.evaluate(approved=True)
     ledger = EventLedger(r.campaign.root)
-    final._event(ledger, "final-fixture", "FINAL_EVALUATED", "good", {
-        "status": "FINAL_SUPPORTED", "measured_improvement": 12345
-    })
+    final._event(
+        ledger,
+        "final-fixture",
+        "FINAL_EVALUATED",
+        "good",
+        {"status": "FINAL_SUPPORTED", "measured_improvement": 12345},
+    )
     with pytest.raises(RunnerIntegrityError, match="Multiple final conclusions"):
         final.inspect()
 
 
-@pytest.mark.parametrize("baseline,candidate", [
-    ({"b": 10., "a": 10.}, {"a": 8., "b": 8.}),
-    ({"z": 10., "a": 10.}, {"z": 8., "a": 8.}),
-])
-def test_paired_bootstrap_deterministic(baseline: dict[str, float],
-                                       candidate: dict[str, float]) -> None:
+@pytest.mark.parametrize(
+    "baseline,candidate",
+    [
+        ({"b": 10.0, "a": 10.0}, {"a": 8.0, "b": 8.0}),
+        ({"z": 10.0, "a": 10.0}, {"z": 8.0, "a": 8.0}),
+    ],
+)
+def test_paired_bootstrap_deterministic(
+    baseline: dict[str, float], candidate: dict[str, float]
+) -> None:
     result = paired_comparison(baseline, candidate, direction="min", seed=17, resamples=200)
-    assert result == paired_comparison(candidate, baseline, direction="max",
-                                       seed=17, resamples=200)
+    assert result == paired_comparison(candidate, baseline, direction="max", seed=17, resamples=200)
     assert result["estimated_improvement"] == 2.0
     assert result["interval_lower"] == result["interval_upper"] == 2.0
     assert result["status"] == "POSITIVE_CI"
 
 
 def test_one_case_is_inconclusive() -> None:
-    result = paired_comparison({"a": 10.}, {"a": 4.}, direction="min", seed=5)
+    result = paired_comparison({"a": 10.0}, {"a": 4.0}, direction="min", seed=5)
     assert result["status"] == "INCONCLUSIVE"
     assert result["interval_lower"] is None
 
 
-@pytest.mark.parametrize("baseline,candidate", [
-    ({"a": float("nan")}, {"a": 1.}),
-    ({"a": 1.}, {"b": 1.}),
-    ({"a": float("inf")}, {"a": 1.}),
-    ({"a": True}, {"a": 1.}),
-    ({}, {}),
-])
-def test_paired_input_refused(baseline: dict[str, float],
-                              candidate: dict[str, float]) -> None:
+@pytest.mark.parametrize(
+    "baseline,candidate",
+    [
+        ({"a": float("nan")}, {"a": 1.0}),
+        ({"a": 1.0}, {"b": 1.0}),
+        ({"a": float("inf")}, {"a": 1.0}),
+        ({"a": True}, {"a": 1.0}),
+        ({}, {}),
+    ],
+)
+def test_paired_input_refused(baseline: dict[str, float], candidate: dict[str, float]) -> None:
     with pytest.raises(StatisticalInputError):
         paired_comparison(baseline, candidate, direction="min", seed=0)
 
 
 def test_stats_cli(tmp_path: Path) -> None:
     path = tmp_path / "observations.json"
-    path.write_text(json.dumps({
-        "baseline": {"a": 12, "b": 13, "c": 15},
-        "candidate": {"a": 10, "b": 11, "c": 12},
-        "direction": "min",
-    }))
-    res = CliRunner().invoke(app, ["stats", "paired", "--file", str(path),
-                                   "--seed", "4", "--resamples", "200"])
+    path.write_text(
+        json.dumps(
+            {
+                "baseline": {"a": 12, "b": 13, "c": 15},
+                "candidate": {"a": 10, "b": 11, "c": 12},
+                "direction": "min",
+            }
+        )
+    )
+    res = CliRunner().invoke(
+        app, ["stats", "paired", "--file", str(path), "--seed", "4", "--resamples", "200"]
+    )
     assert res.exit_code == 0, res.output
     assert json.loads(res.output)["data"]["observation_count"] == 3

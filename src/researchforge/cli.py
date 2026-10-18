@@ -15,13 +15,13 @@ from researchforge.application.final import FinalService
 from researchforge.application.qualification import HypothesisSpec, QualificationService
 from researchforge.application.runner import ExecutionRefused, RunnerIntegrityError, RunnerService
 from researchforge.domain.envelope import ApiError, ResponseEnvelope
-from researchforge.statistics import StatisticalInputError, paired_comparison
 from researchforge.domain.models import (
     CampaignManifest,
     EvaluationResult,
     EvidenceEvent,
     FrozenManifest,
 )
+from researchforge.statistics import StatisticalInputError, paired_comparison
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 contracts = typer.Typer(help="Inspect public, versioned contracts.")
@@ -348,8 +348,11 @@ def stats_paired(
     try:
         input_data = json.loads(file.read_text(encoding="utf-8"))
         result = paired_comparison(
-            input_data["baseline"], input_data["candidate"],
-            direction=input_data["direction"], seed=seed, resamples=resamples,
+            input_data["baseline"],
+            input_data["candidate"],
+            direction=input_data["direction"],
+            seed=seed,
+            resamples=resamples,
         )
         typer.echo(ResponseEnvelope(status="OK", data=dict(result)).model_dump_json())
     except (OSError, ValueError, KeyError, TypeError, StatisticalInputError) as exc:

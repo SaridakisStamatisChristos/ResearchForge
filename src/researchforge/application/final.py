@@ -6,7 +6,6 @@ One started final evaluation consumes the one-shot right even if its process cra
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -15,14 +14,13 @@ from pydantic import ValidationError
 from researchforge.application.evidence import EventLedger
 from researchforge.application.qualification import QualificationService
 from researchforge.application.runner import (
+    TERMINAL,
     ExecutionRefused,
     RunnerIntegrityError,
     RunnerService,
-    TERMINAL,
     _result,
 )
 from researchforge.domain.models import ArtifactRef
-from researchforge.domain.serialization import canonical_json
 
 
 class FinalService:
@@ -37,15 +35,17 @@ class FinalService:
         return QualificationService._payloads(ledger, campaign_id)
 
     @staticmethod
-    def _event(ledger: EventLedger, campaign: str, kind: str, ident: str,
-               payload: dict[str, Any]) -> Any:
+    def _event(
+        ledger: EventLedger, campaign: str, kind: str, ident: str, payload: dict[str, Any]
+    ) -> Any:
         return QualificationService._append(ledger, campaign, kind, ident, payload)
 
     def _frozen_plan(
         self, ledger: EventLedger, campaign_id: str, frozen: Any
     ) -> tuple[Any, dict[str, Any]] | None:
         plans = [
-            (event, payload) for event, payload in self._entries(ledger, campaign_id)
+            (event, payload)
+            for event, payload in self._entries(ledger, campaign_id)
             if event.event_type == "FINAL_PLAN_FROZEN"
         ]
         if len(plans) > 1:
@@ -112,24 +112,28 @@ class FinalService:
                 "method": "aggregate-strict-improvement-v1",
                 "arms": ["baseline", candidate_id],
             }
-            self._event(
-                ledger, frozen.campaign_id, "FINAL_PLAN_FROZEN", candidate_id, plan
-            )
+            self._event(ledger, frozen.campaign_id, "FINAL_PLAN_FROZEN", candidate_id, plan)
             return plan
 
     @staticmethod
     def _compare_decision(computed: dict[str, Any], stored: dict[str, Any]) -> None:
         fields = (
-            "candidate_id", "status", "reason", "policy_version", "policy_sha256",
-            "qualified_improvement", "minimum_absolute_improvement",
-            "evidence_events", "qualification_attempt_exposure", "selection_stage_only",
+            "candidate_id",
+            "status",
+            "reason",
+            "policy_version",
+            "policy_sha256",
+            "qualified_improvement",
+            "minimum_absolute_improvement",
+            "evidence_events",
+            "qualification_attempt_exposure",
+            "selection_stage_only",
         )
         if any(computed[field] != stored.get(field) for field in fields):
             raise RunnerIntegrityError("Stored qualification verdict cannot be replayed")
 
     def _check_qualified(
-        self, ledger: EventLedger, campaign_id: str, candidate_id: str,
-        plan: dict[str, Any]
+        self, ledger: EventLedger, campaign_id: str, candidate_id: str, plan: dict[str, Any]
     ) -> None:
         computed = self.selection.decide(candidate_id)
         saved = [
@@ -144,14 +148,18 @@ class FinalService:
         if (
             computed["status"] != "QUALIFIED"
             or event.event_sha256 != plan["selection_event_sha256"]
-            or computed["qualification_attempt_exposure"]
-            != plan["qualification_attempt_exposure"]
+            or computed["qualification_attempt_exposure"] != plan["qualification_attempt_exposure"]
         ):
             raise RunnerIntegrityError("Final plan not backed by qualified selection")
 
     def _final_records(
-        self, ledger: EventLedger, campaign_id: str, frozen: Any,
-        manifest: Any, plan_event: Any, plan: dict[str, Any]
+        self,
+        ledger: EventLedger,
+        campaign_id: str,
+        frozen: Any,
+        manifest: Any,
+        plan_event: Any,
+        plan: dict[str, Any],
     ) -> tuple[dict[str, tuple[Any, Any]], bool]:
         """Reconstruct final-arm evidence without trusting result values in the ledger."""
         starts: dict[str, tuple[Any, dict[str, Any]]] = {}
@@ -160,7 +168,11 @@ class FinalService:
         ended = False
         for event, payload in self._entries(ledger, campaign_id):
             if event.event_type == "FINAL_EVALUATION_STARTED":
-                if began or event.sequence <= plan_event.sequence or event.subject_id != plan["candidate_id"]:
+                if (
+                    began
+                    or event.sequence <= plan_event.sequence
+                    or event.subject_id != plan["candidate_id"]
+                ):
                     raise RunnerIntegrityError("Invalid or duplicate final start")
                 if payload != {"plan_event_sha256": plan_event.event_sha256}:
                     raise RunnerIntegrityError("Unbound final start")
@@ -172,15 +184,23 @@ class FinalService:
             elif event.event_type == "ATTEMPT_STARTED" and payload.get("role") == "final":
                 ident = payload.get("candidate_id")
                 expected_commit = (
-                    plan["baseline_commit"] if ident == "baseline"
-                    else plan["candidate_commit"] if ident == plan["candidate_id"] else None
+                    plan["baseline_commit"]
+                    if ident == "baseline"
+                    else plan["candidate_commit"]
+                    if ident == plan["candidate_id"]
+                    else None
                 )
                 expected_tree = (
-                    plan["baseline_tree"] if ident == "baseline"
-                    else plan["candidate_tree"] if ident == plan["candidate_id"] else None
+                    plan["baseline_tree"]
+                    if ident == "baseline"
+                    else plan["candidate_tree"]
+                    if ident == plan["candidate_id"]
+                    else None
                 )
                 if (
-                    not began or ended or event.subject_id in starts
+                    not began
+                    or ended
+                    or event.subject_id in starts
                     or ident in {pair[1].get("candidate_id") for pair in starts.values()}
                     or len(starts) >= 2
                     or ident != plan["arms"][len(starts)]
@@ -206,12 +226,14 @@ class FinalService:
                         output = ledger.cas.get(ArtifactRef.model_validate(payload["stdout_ref"]))
                         ledger.cas.get(ArtifactRef.model_validate(payload["stderr_ref"]))
                         decoded = _result(
-                            output, manifest=manifest,
+                            output,
+                            manifest=manifest,
                             expected_hash=frozen.splits["final"].sha256,
                             count=frozen.splits["final"].case_count,
                         )
                         if (
-                            payload["status"] != "SUCCEEDED" or payload["exit_code"] != 0
+                            payload["status"] != "SUCCEEDED"
+                            or payload["exit_code"] != 0
                             or payload["validated_result"] != decoded.model_dump(mode="json")
                             or ledger.cas.get(ArtifactRef.model_validate(payload["result_ref"]))
                             != output
@@ -232,9 +254,7 @@ class FinalService:
         return terminal, began
 
     @staticmethod
-    def _conclusion(
-        records: dict[str, tuple[Any, Any]], plan: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _conclusion(records: dict[str, tuple[Any, Any]], plan: dict[str, Any]) -> dict[str, Any]:
         references = {name: event.event_sha256 for name, (event, _) in records.items()}
         candidate_id = str(plan["candidate_id"])
         baseline_row = records.get("baseline")
@@ -245,11 +265,11 @@ class FinalService:
             base = baseline_row[1].value
             candidate = candidate_row[1].value
             gain = base - candidate if plan["direction"] == "min" else candidate - base
-            qualifies = gain >= plan["threshold"] and (
-                gain > 0 or plan["allow_equal"]
-            )
+            qualifies = gain >= plan["threshold"] and (gain > 0 or plan["allow_equal"])
             status = "FINAL_SUPPORTED" if qualifies else "FINAL_NOT_SUPPORTED"
-            reason = "PREDECLARED_AGGREGATE_THRESHOLD_MET" if qualifies else "FINAL_THRESHOLD_NOT_MET"
+            reason = (
+                "PREDECLARED_AGGREGATE_THRESHOLD_MET" if qualifies else "FINAL_THRESHOLD_NOT_MET"
+            )
         return {
             "candidate_id": candidate_id,
             "status": status,
@@ -290,7 +310,10 @@ class FinalService:
             if count + 2 > manifest.budget.max_attempts:
                 raise ExecutionRefused("Insufficient reserved evaluation-attempt budget")
             self._event(
-                ledger, frozen.campaign_id, "FINAL_EVALUATION_STARTED", plan["candidate_id"],
+                ledger,
+                frozen.campaign_id,
+                "FINAL_EVALUATION_STARTED",
+                plan["candidate_id"],
                 {"plan_event_sha256": plan_event.event_sha256},
             )
             # A crash after this event consumes final exposure. Never automatically rerun.
@@ -353,9 +376,7 @@ class FinalService:
             "final_status": "FINAL_UNKNOWN" if started else "NOMINATED",
             "final_plan": plan,
             "final_result": None,
-            "final_attempt_events": {
-                key: val[0].event_sha256 for key, val in records.items()
-            },
+            "final_attempt_events": {key: val[0].event_sha256 for key, val in records.items()},
         }
 
     def report_markdown(self) -> str:
@@ -371,23 +392,27 @@ class FinalService:
         ]
         plan = data["final_plan"]
         if plan is not None:
-            report.extend([
-                "## Frozen final plan",
-                f"Candidate: `{plan['candidate_id']}`",
-                f"Commit: `{plan['candidate_commit']}`",
-                f"Selected qualification event: `{plan['selection_event_sha256']}`",
-                f"Selection-stage qualification exposure: {plan['qualification_attempt_exposure']}",
-                "",
-            ])
+            report.extend(
+                [
+                    "## Frozen final plan",
+                    f"Candidate: `{plan['candidate_id']}`",
+                    f"Commit: `{plan['candidate_commit']}`",
+                    f"Selected qualification event: `{plan['selection_event_sha256']}`",
+                    f"Selection-stage qualification exposure: {plan['qualification_attempt_exposure']}",
+                    "",
+                ]
+            )
         final = data["final_result"]
         if final is not None:
-            report.extend([
-                "## Final aggregate comparison",
-                f"Difference (positive favors candidate): {final['measured_improvement']}",
-                f"Predeclared minimum improvement: {final['threshold']}",
-                f"Basis: {final['reason']}",
-                "Final evidence event hashes:",
-            ])
+            report.extend(
+                [
+                    "## Final aggregate comparison",
+                    f"Difference (positive favors candidate): {final['measured_improvement']}",
+                    f"Predeclared minimum improvement: {final['threshold']}",
+                    f"Basis: {final['reason']}",
+                    "Final evidence event hashes:",
+                ]
+            )
             for name, evidence in sorted(final["final_evidence_events"].items()):
                 report.append(f"- {name}: `{evidence}`")
             report.extend(["", "## Limitations"])

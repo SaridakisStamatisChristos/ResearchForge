@@ -280,7 +280,9 @@ class RunnerService:
             ]
             requested = candidate_id if candidate_id is not None else "baseline"
             if (
-                len(plans) != 1 or len(openings) != 1 or completions
+                len(plans) != 1
+                or len(openings) != 1
+                or completions
                 or len(prior_final) >= 2
                 or requested != plans[0]["arms"][len(prior_final)]
             ):
