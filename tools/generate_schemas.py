@@ -13,10 +13,12 @@ from researchforge.domain.models import (  # noqa: E402
     CampaignManifest,
     EvaluationResult,
     EvidenceEvent,
+    FrozenManifest,
 )
 
 MODELS = {
     "campaign-v1.schema.json": CampaignManifest,
+    "manifest-lock-v1.schema.json": FrozenManifest,
     "evaluator-result-v1.schema.json": EvaluationResult,
     "evidence-event-v1.schema.json": EvidenceEvent,
 }

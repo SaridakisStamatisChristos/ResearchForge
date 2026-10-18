@@ -24,3 +24,10 @@ replayed offline by `verify`, checking expected sequence, event hash and blob di
 A SQLite or blob mutation is detected; this is **not tamper proof** against full database
 and blob rewriting by the machine owner. Crash-injected precommit exceptions leave zero
 committed phantom events and may leave identifiable orphan blobs. No automatic cleanup.
+
+## PR03 manifest.lock.json
+
+`FrozenManifest` is a typed, versioned lock derived from `CampaignManifest` and exact bytes
+of the original evaluator/split inputs. The SHA-256 lock bytes are bound by a
+`CAMPAIGN_FROZEN` event. Freezing is idempotent for unchanged inputs and recovers a
+lock-only crash without claiming evaluator success. Changes to frozen inputs are refused.
