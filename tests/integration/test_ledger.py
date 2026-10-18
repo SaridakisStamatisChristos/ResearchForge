@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -104,3 +105,26 @@ def test_collision_rejected_even_when_digest_matches(tmp_path: Path) -> None:
         store.put(b"A")
         with pytest.raises(ArtifactIntegrityError):
             store.put(b"B")
+
+
+def test_noncanonical_event_rows_fail_integrity_replay(tmp_path: Path) -> None:
+    ledger = EventLedger(tmp_path)
+    ledger.append_event("camp", 0, "CREATED", "camp", {"x": 1})
+    with sqlite3.connect(ledger.database) as db:
+        stored = db.execute("SELECT event_json FROM events").fetchone()[0]
+        db.execute("DROP TRIGGER events_no_update")
+        db.execute("UPDATE events SET event_json=?", (json.dumps(json.loads(stored), indent=2),))
+    with pytest.raises(LedgerIntegrityError, match="Noncanonical"):
+        ledger.verify("camp")
+
+
+def test_cas_refuses_directory_symlink_escape(tmp_path: Path) -> None:
+    store = FileSystemCAS(tmp_path / "blobs")
+    target = store._path(digest_bytes(b"payload"))
+    target.parent.parent.parent.mkdir(parents=True, exist_ok=True)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    target.parent.parent.symlink_to(outside, target_is_directory=True)
+    with pytest.raises(ArtifactIntegrityError, match="escaped"):
+        store.put(b"payload")
+    assert list(outside.rglob("*")) == [outside / target.parent.name]
