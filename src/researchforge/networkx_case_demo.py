@@ -131,7 +131,10 @@ def run_networkx_case_study(root: Path) -> dict[str, Any]:
             }
         )
     tools: dict[str, dict[str, Any]] = {}
-    for label, method in (("networkx-dijkstra", "dijkstra"), ("networkx-bellman-ford", "bellman-ford")):
+    for label, method in (
+        ("networkx-dijkstra", "dijkstra"),
+        ("networkx-bellman-ford", "bellman-ford"),
+    ):
         tools[label] = {
             "name": label,
             "argv": [str(python), str(adapter), "{input}", method],
