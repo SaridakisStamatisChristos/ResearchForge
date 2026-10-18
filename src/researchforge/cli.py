@@ -11,8 +11,15 @@ from pydantic import BaseModel, ValidationError
 
 from researchforge import __version__
 from researchforge.application.campaigns import CampaignService, FrozenStateError, ManifestError
+from researchforge.application.final import FinalService
 from researchforge.application.qualification import HypothesisSpec, QualificationService
-from researchforge.application.runner import ExecutionRefused, RunnerIntegrityError, RunnerService
+from researchforge.application.runner import (
+    ExecutionRefused,
+    RunnerIntegrityError,
+    RunnerService,
+    _pairs_unique,
+    _reject_constant,
+)
 from researchforge.domain.envelope import ApiError, ResponseEnvelope
 from researchforge.domain.models import (
     CampaignManifest,
@@ -20,6 +27,7 @@ from researchforge.domain.models import (
     EvidenceEvent,
     FrozenManifest,
 )
+from researchforge.statistics import StatisticalInputError, paired_comparison
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 contracts = typer.Typer(help="Inspect public, versioned contracts.")
@@ -32,6 +40,10 @@ hypothesis_commands = typer.Typer(help="Record falsifiable hypotheses.")
 app.add_typer(hypothesis_commands, name="hypothesis")
 candidate_commands = typer.Typer(help="Register Git-identified candidates.")
 app.add_typer(candidate_commands, name="candidate")
+final_commands = typer.Typer(help="One-shot pre-registered final evaluation.")
+app.add_typer(final_commands, name="final")
+stats_commands = typer.Typer(help="Deterministic descriptive statistical comparisons.")
+app.add_typer(stats_commands, name="stats")
 
 
 def version_callback(value: bool) -> None:
@@ -241,6 +253,121 @@ def qualify(
     except RunnerIntegrityError as exc:
         typer.echo(f"CORRUPT: {exc}", err=True)
         raise typer.Exit(code=6) from exc
+
+
+@final_commands.command("nominate")
+def final_nominate(
+    campaign_path: Annotated[Path, typer.Option("--campaign")],
+    candidate_id: Annotated[str, typer.Option("--candidate")],
+) -> None:
+    """Freeze the selected candidate and comparison without accessing final scores."""
+    try:
+        data = FinalService(campaign_path).nominate(candidate_id)
+        typer.echo(ResponseEnvelope(status="OK", data=data).model_dump_json())
+    except ExecutionRefused as exc:
+        typer.echo(f"REFUSED: {exc}", err=True)
+        raise typer.Exit(code=3) from exc
+    except RunnerIntegrityError as exc:
+        typer.echo(f"CORRUPT: {exc}", err=True)
+        raise typer.Exit(code=6) from exc
+
+
+@final_commands.command("evaluate")
+def final_evaluate(
+    campaign_path: Annotated[Path, typer.Option("--campaign")],
+    approve_trusted_local: Annotated[bool, typer.Option("--approve-trusted-local")] = False,
+) -> None:
+    """Consume the single final evaluation right (baseline then nominated candidate)."""
+    try:
+        data = FinalService(campaign_path).evaluate(approved=approve_trusted_local)
+        typer.echo(ResponseEnvelope(status="OK", data=data).model_dump_json())
+    except ExecutionRefused as exc:
+        typer.echo(f"REFUSED: {exc}", err=True)
+        raise typer.Exit(code=3) from exc
+    except RunnerIntegrityError as exc:
+        typer.echo(f"CORRUPT: {exc}", err=True)
+        raise typer.Exit(code=6) from exc
+
+
+@final_commands.command("inspect")
+def final_inspect(
+    campaign_path: Annotated[Path, typer.Option("--campaign")],
+) -> None:
+    """Replay final plan and conclusion without executing experiments."""
+    try:
+        data = FinalService(campaign_path).inspect()
+        typer.echo(ResponseEnvelope(status="OK", data=data).model_dump_json())
+    except RunnerIntegrityError as exc:
+        typer.echo(f"CORRUPT: {exc}", err=True)
+        raise typer.Exit(code=6) from exc
+
+
+@app.command("verify")
+def verify_campaign(
+    campaign_path: Annotated[Path, typer.Option("--campaign")],
+) -> None:
+    """Offline replay of ledger, frozen identities and any final conclusion."""
+    try:
+        data = FinalService(campaign_path).inspect()
+        typer.echo(ResponseEnvelope(status="OK", data=data).model_dump_json())
+    except RunnerIntegrityError as exc:
+        typer.echo(f"CORRUPT: {exc}", err=True)
+        raise typer.Exit(code=6) from exc
+
+
+@app.command("report")
+def report_campaign(
+    campaign_path: Annotated[Path, typer.Option("--campaign")],
+    report_format: Annotated[str, typer.Option("--format")] = "md",
+    output: Annotated[Path | None, typer.Option("--output")] = None,
+) -> None:
+    """Read-only evidence replay; optional new report file is never overwritten."""
+    try:
+        service = FinalService(campaign_path)
+        if report_format == "md":
+            content = service.report_markdown()
+        elif report_format == "json":
+            content = json.dumps(service.inspect(), sort_keys=True, indent=2) + "\n"
+        else:
+            raise ValueError("Choose md or json report format")
+        if output is None:
+            typer.echo(content, nl=False)
+        else:
+            with output.open("x", encoding="utf-8") as handle:
+                handle.write(content)
+            typer.echo(str(output))
+    except (OSError, ValueError) as exc:
+        typer.echo(f"INVALID_INPUT: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    except RunnerIntegrityError as exc:
+        typer.echo(f"CORRUPT: {exc}", err=True)
+        raise typer.Exit(code=6) from exc
+
+
+@stats_commands.command("paired")
+def stats_paired(
+    file: Annotated[Path, typer.Option("--file")],
+    seed: Annotated[int, typer.Option("--seed")],
+    resamples: Annotated[int, typer.Option("--resamples")] = 2000,
+) -> None:
+    """Statistical description of explicitly aligned case-level measurements."""
+    try:
+        input_data = json.loads(
+            file.read_text(encoding="utf-8"),
+            object_pairs_hook=_pairs_unique,
+            parse_constant=_reject_constant,
+        )
+        result = paired_comparison(
+            input_data["baseline"],
+            input_data["candidate"],
+            direction=input_data["direction"],
+            seed=seed,
+            resamples=resamples,
+        )
+        typer.echo(ResponseEnvelope(status="OK", data=dict(result)).model_dump_json())
+    except (OSError, ValueError, KeyError, TypeError, StatisticalInputError) as exc:
+        typer.echo(f"INVALID_INPUT: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
 
 
 if __name__ == "__main__":

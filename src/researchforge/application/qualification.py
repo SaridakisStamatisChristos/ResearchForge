@@ -39,6 +39,13 @@ class QualificationService:
         self.runner = RunnerService(path)
 
     @staticmethod
+    def _selection_open(ledger: EventLedger, campaign_id: str) -> None:
+        if any(
+            event.event_type == "FINAL_PLAN_FROZEN" for event in ledger.read_events(campaign_id)
+        ):
+            raise ExecutionRefused("Candidate selection closed by frozen final nomination")
+
+    @staticmethod
     def _payloads(ledger: EventLedger, campaign_id: str) -> list[tuple[Any, dict[str, Any]]]:
         entries: list[tuple[Any, dict[str, Any]]] = []
         for event in ledger.read_events(campaign_id):
@@ -99,6 +106,7 @@ class QualificationService:
     def add_hypothesis(self, spec: HypothesisSpec) -> dict[str, Any]:
         with self.runner._lease():
             manifest, frozen, _, _, ledger = self.runner._ready()
+            self._selection_open(ledger, frozen.campaign_id)
             hypotheses, _ = self.registry(ledger, frozen.campaign_id)
             if spec.hypothesis_id in hypotheses:
                 if hypotheses[spec.hypothesis_id] != spec:
@@ -124,6 +132,7 @@ class QualificationService:
             raise ExecutionRefused("Candidate must specify a full immutable Git OID")
         with self.runner._lease():
             manifest, frozen, _, repo, ledger = self.runner._ready()
+            self._selection_open(ledger, frozen.campaign_id)
             hypotheses, candidates = self.registry(ledger, frozen.campaign_id)
             if hypothesis_id not in hypotheses:
                 raise ExecutionRefused("Unknown hypothesis")
@@ -164,9 +173,13 @@ class QualificationService:
         closed: set[str] = set()
         measurements: dict[tuple[str, str], tuple[Any, EvaluationResult]] = {}
         exposure = 0
+        final_starts: set[str] = set()
         terminal = {"ATTEMPT_SUCCEEDED", "ATTEMPT_FAILED", "ATTEMPT_TIMED_OUT", "ATTEMPT_UNKNOWN"}
         for event, payload in self._payloads(ledger, campaign_id):
             if event.event_type == "ATTEMPT_STARTED":
+                if payload.get("role") == "final":
+                    final_starts.add(event.subject_id)
+                    continue
                 ident = payload.get("candidate_id", "baseline")
                 role = payload.get("role")
                 target_commit = (
@@ -199,6 +212,9 @@ class QualificationService:
                 if role == "qualification" and ident != "baseline":
                     exposure += 1
             elif event.event_type in terminal:
+                if event.subject_id in final_starts:
+                    final_starts.remove(event.subject_id)
+                    continue
                 if event.subject_id not in starts or event.subject_id in closed:
                     raise RunnerIntegrityError("Attempt terminal has no unique start")
                 started_event, start = starts.pop(event.subject_id)
@@ -293,6 +309,7 @@ class QualificationService:
     def qualify(self, candidate_id: str) -> dict[str, Any]:
         with self.runner._lease():
             _, frozen, _, _, ledger = self.runner._ready()
+            self._selection_open(ledger, frozen.campaign_id)
             result = self.decide(candidate_id)
             prior: tuple[Any, dict[str, Any]] | None = None
             for event, payload in self._payloads(ledger, frozen.campaign_id):

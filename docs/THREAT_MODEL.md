@@ -22,3 +22,16 @@ hash. Each candidate evaluation still requires explicit local operator approval.
 No user branch is merged, and qualification does not consult final data or produce
 scientific confirmation. As with PR04, a locally compromised host can rewrite
 both the SQLite ledger and CAS; this system does not protect against that threat.
+
+## PR06 final exposure and audit boundaries
+
+Candidate selection is irrevocably closed before final evaluator exposure. No
+direct CLI option gives a candidate access to the final split during development.
+Final-subprocess execution still operates with ordinary trusted-local host
+permissions; this is **not** a sandbox or a defense against a malicious trusted
+command that reads final data through the host filesystem. The final event chain
+is audit-detectable but not administrator-tamper-proof. Interruption after final
+start invalidates the one-shot evaluation rather than authorizing a silent rerun.
+The scalar final threshold cannot establish generalization or statistical
+significance; bootstrap routines require authentic, correctly paired case-level
+observations and honest sampling-unit assumptions.

@@ -29,3 +29,11 @@ and replays source event hashes and immutable CAS stdout before accepting a
 measured number. The frozen qualification gate is a repeated selection stage;
 the `final` split stays inaccessible. No autonomous hypothesis generator or
 statistical superiority claim is implemented in this PR.
+
+PR06 adds a no-LLM `FinalService` as the only entry point into the sealed final
+role; a stored final-plan event is the irreversible selection/evaluation boundary.
+Final completion is recomputed from raw CAS artifacts and independent v1 parser
+checks. The final plan stores both comparison arms and consumes a one-shot right
+at execution start. Runner and qualification gate direct post-nomination search.
+The separate statistics module provides seeded paired-sample percentile bootstrap
+without inferring per-case distributions from aggregate metrics.
