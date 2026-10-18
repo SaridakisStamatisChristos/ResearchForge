@@ -239,3 +239,17 @@ success retains prior observations as `PARTIAL`; failure without observations
 is `UNKNOWN`. Incomplete retrievals use process exit code 5 and never
 pretend to be complete. Network errors/quotas can still occur on real providers,
 and their results have not been empirically checked in CI.
+
+## PR11 — HypothesisForge
+
+`rf hypothesis draft --file design.json --output draft.json` validates a
+falsifiable research design without touching campaign state. Optional
+`rf hypothesis generate --brief brief.txt --model MODEL
+--allow-model-network --output draft.json` requires operator opt-in and an
+OpenAI API key, and produces an `AI_PROPOSED_UNVERIFIED` draft, never an
+approved result. After reading the draft, admit it with
+`rf hypothesis approve --campaign PATH --file draft.json
+--expect-sha256 DIGEST --approve-human`. Human approval is recorded in the
+append-only ledger; existing frozen metric, attempt-budget and sealed-final
+guards remain in force. See `docs/HYPOTHESIS_FORGE.md` for limitations and
+a complete walkthrough.
