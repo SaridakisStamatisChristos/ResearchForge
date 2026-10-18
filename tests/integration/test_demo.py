@@ -13,7 +13,7 @@ from typer.testing import CliRunner
 
 from researchforge.application.evidence import EventLedger
 from researchforge.application.final import FinalService
-from researchforge.application.runner import ExecutionRefused, RunnerIntegrityError, RunnerService
+from researchforge.application.runner import ExecutionRefused, RunnerIntegrityError
 from researchforge.cli import app
 from researchforge.demo import run_demo
 from researchforge.domain.models import ArtifactRef
@@ -65,7 +65,7 @@ def test_offline_demo_real_subprocesses_sealed_final_and_cli(tmp_path: Path) -> 
     assert runner.invoke(app, ["demo", "run", "--offline", "--output", str(target)]).exit_code == 2
 
     ledger, events = _events(target)
-    assert ledger.verify("toy-optimizer-v1")["event_count"] == 25
+    assert ledger.verify("toy-optimizer-v1")["event_count"] == 26
     starts = {}
     for event in events:
         if event.event_type == "ATTEMPT_STARTED":
