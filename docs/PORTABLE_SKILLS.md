@@ -14,7 +14,8 @@ rf skill export --name researchforge-audit --target /my/workspace/.agents/skills
 
 Export creates one new directory and never overwrites installed skills.
 Symlinked path components are refused. The original no-name CLI commands
-continue working. No ResearchForge license has been assigned.
+continue working. PR10 did not select a license; current repository terms
+are in [LICENSE](../LICENSE).
 
 External scholarly provider calls require the separate --allow-network switch
 and operator permission. The offline auditor only verifies typed mechanical

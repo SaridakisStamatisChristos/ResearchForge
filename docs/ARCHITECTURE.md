@@ -68,7 +68,7 @@ not itself call a provider. PR14 agent trials require
   but filesystem paths, timestamps, commits and external agents can vary.
 - **Operations:** No deployed service, multi-tenant isolation, unattended
   release/publishing pipeline or commercially validated support promise
-  is claimed. ResearchForge has no chosen repository license.
+  is claimed. ResearchForge is proprietary under [LICENSE](../LICENSE).
 
 For exact data contracts, commands and independently asserted invariants,
 see [contracts](CONTRACTS.md), [MVP acceptance](MVP_ACCEPTANCE.md),

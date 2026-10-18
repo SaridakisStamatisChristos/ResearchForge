@@ -14,7 +14,8 @@ The original PR01 provenance note reports no copied K-Dense-AI source; see
 historical note that all future provenance and transitive license requirements
 have been exhaustively audited.
 
-**ResearchForge has no selected repository license.** This file grants no
-permission to reuse, modify, publish or redistribute ResearchForge source.
-A maintainer licensing decision and dependency-notice review are required
-before describing it as an open-source or distributable package.
+**ResearchForge is proprietary (All Rights Reserved).** The governing terms
+are in [LICENSE](LICENSE); this notices file does not grant rights to use,
+modify, publish, sell or redistribute ResearchForge. Its public visibility
+does not make it open source. Review the licenses and notices for all
+third-party dependencies before any authorized distribution.

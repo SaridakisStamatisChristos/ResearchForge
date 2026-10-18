@@ -1,0 +1,43 @@
+ResearchForge — Proprietary Software License
+Copyright (c) 2026 Stamatis-Christos Saridakis
+All rights reserved.
+
+1. OWNERSHIP AND RIGHTS RESERVED
+
+ResearchForge source code, documentation, and other original materials in this
+repository are proprietary. All rights not expressly granted by the copyright
+holder are reserved.
+
+2. NO GENERAL LICENSE GRANT
+
+Making the repository publicly accessible does not grant a general license
+to use, execute, copy, modify, adapt, create derivative works from, distribute,
+sublicense, sell, commercially exploit, or deploy ResearchForge.
+
+Any exercise of these rights requires prior written authorization from the
+copyright holder, except to the extent permitted by applicable law or by
+GitHub's applicable Terms of Service for content hosted on GitHub.
+
+3. PERMISSION AND COMMERCIAL LICENSING
+
+For evaluation, integration, redistribution, commercial deployment, or any
+other use not otherwise authorized, obtain a separate written agreement from
+the copyright holder. Requests may be directed through the repository owner's
+GitHub profile.
+
+4. THIRD-PARTY MATERIALS
+
+This notice covers only rights controlled by the ResearchForge copyright
+holder. It does not replace or restrict independent permissions under licenses
+applicable to third-party dependencies, external tools, or other third-party
+materials. See THIRD_PARTY_NOTICES.md for additional information.
+
+5. DISCLAIMER
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, RESEARCHFORGE IS PROVIDED
+"AS IS", WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+THE COPYRIGHT HOLDER IS NOT LIABLE FOR DAMAGES ARISING FROM USE OF THE
+SOFTWARE TO THE EXTENT PERMITTED BY APPLICABLE LAW.
+
+For license inquiries or written permission, contact the repository owner.

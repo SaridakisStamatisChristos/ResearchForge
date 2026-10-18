@@ -42,7 +42,7 @@ The `rf demo run --offline --output NEW_DIRECTORY` command must:
 | I-07 hard budgets | PR04/PR05 attempt and candidate caps, final-arm reservation |
 | I-08 deterministic decisions | Identical good/rejected decisions across fresh offline reruns |
 | I-09 no silent side effects | Exclusive output path, no origin checkout mutation, explicit export |
-| I-10 license/provenance | No external code imported; license deliberately undecided |
+| I-10 license/provenance | PR07 reported no imported external code and an undecided license at that time; current terms: [LICENSE](../LICENSE) |
 
 ## Verification and limitations
 

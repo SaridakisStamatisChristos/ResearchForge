@@ -30,9 +30,10 @@ a statistically supported speed or correctness advantage in the wild.
 2. **Reproducibility beyond CI:** Independently exercise fresh-clone setup,
    packaging, optional integrations and archival replay across environments.
    CI is necessary, not a guarantee of platform-wide reproducibility.
-3. **Distribution/legal choice:** Have the maintainer choose a repository
-   license (if distribution is intended), review dependency notices and
-   verify publication/release artifacts before any distribution claim.
+3. **Distribution and legal clearance:** The repository is proprietary
+   under [LICENSE](../LICENSE). Obtain written authorization before any
+   third-party use or distribution, review dependency notices, and verify
+   publication/release artifacts before claiming distribution readiness.
 4. **Security boundary:** If untrusted experiment execution becomes a goal,
    separately design and validate isolation. The trusted local runner must
    not be marketed as a sandbox.

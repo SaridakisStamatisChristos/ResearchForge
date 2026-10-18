@@ -61,10 +61,13 @@ lookups and optional model proposals have **separate, explicit network opt-ins**
 Trusted-local evaluation and external agent execution run processes under the
 operator's permissions; **only execute trusted code**.
 
-**License:** No repository license has been selected. Public source visibility
-does not grant permission to reuse or distribute this code. Do not treat
-third-party dependencies or their licenses as a license for ResearchForge.
-See [third-party notices](THIRD_PARTY_NOTICES.md) and
+**License:** ResearchForge is **proprietary — All Rights Reserved**.
+See [LICENSE](LICENSE) for the governing terms. This public repository is
+not an open-source grant: running, copying, modifying, redistributing or
+commercially using ResearchForge requires written authorization, except
+where applicable law or GitHub's platform terms permit. The first-run
+commands above are intended for authorized users. Third-party package
+licenses remain separate; see [notices](THIRD_PARTY_NOTICES.md) and
 [upstream adaptations](docs/UPSTREAM_ADAPTATIONS.md).
 
 ## Detailed command reference and implementation history
