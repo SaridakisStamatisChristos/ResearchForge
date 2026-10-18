@@ -282,7 +282,9 @@ class QualificationService:
             "policy_version": manifest.qualification_policy.name,
             "policy_sha256": frozen.policy_sha256,
             "qualified_improvement": gain,
-            "minimum_absolute_improvement": manifest.qualification_policy.minimum_absolute_improvement,
+            "minimum_absolute_improvement": (
+                manifest.qualification_policy.minimum_absolute_improvement
+            ),
             "evidence_events": referenced,
             "qualification_attempt_exposure": exposure,
             "selection_stage_only": True,
