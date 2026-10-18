@@ -33,8 +33,8 @@ class FileSystemCAS:
                 os.close(descriptor)
 
     def _checked_blob(self, path: Path, ref: ArtifactRef) -> bytes:
-        if path.is_symlink():
-            raise ArtifactIntegrityError("Symlink at content address")
+        if path.is_symlink() or not path.parent.resolve().is_relative_to(self.root):
+            raise ArtifactIntegrityError("Symlink or escaped path at content address")
         try:
             data = path.read_bytes()
         except FileNotFoundError as exc:
@@ -49,6 +49,8 @@ class FileSystemCAS:
         ref = ArtifactRef(sha256=digest_bytes(content), size_bytes=len(content))
         target = self._path(ref.sha256)
         target.parent.mkdir(parents=True, exist_ok=True)
+        if not target.parent.resolve().is_relative_to(self.root):
+            raise ArtifactIntegrityError("Content address escaped CAS root")
         if target.is_symlink():
             raise ArtifactIntegrityError("Existing address is a symlink")
         if target.exists():
