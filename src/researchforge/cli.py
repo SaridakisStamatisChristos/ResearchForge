@@ -21,18 +21,20 @@ from researchforge.application.runner import (
     _reject_constant,
 )
 from researchforge.demo import DemoError, run_demo
-from researchforge.portable_skills import (
-    NAME as PORTABLE_SKILL_NAME,
-    PortableSkillError,
-    export_skill,
-    validate_skill,
-)
 from researchforge.domain.envelope import ApiError, ResponseEnvelope
 from researchforge.domain.models import (
     CampaignManifest,
     EvaluationResult,
     EvidenceEvent,
     FrozenManifest,
+)
+from researchforge.portable_skills import (
+    NAME as PORTABLE_SKILL_NAME,
+)
+from researchforge.portable_skills import (
+    PortableSkillError,
+    export_skill,
+    validate_skill,
 )
 from researchforge.statistics import StatisticalInputError, paired_comparison
 
@@ -429,9 +431,11 @@ def skill_export(
         if name != PORTABLE_SKILL_NAME:
             raise PortableSkillError("Unknown bundled skill name")
         location = export_skill(target)
-        typer.echo(ResponseEnvelope(
-            status="OK", data={"name": name, "path": str(location)}
-        ).model_dump_json())
+        typer.echo(
+            ResponseEnvelope(
+                status="OK", data={"name": name, "path": str(location)}
+            ).model_dump_json()
+        )
     except (PortableSkillError, OSError) as exc:
         typer.echo(f"REFUSED: {exc}", err=True)
         raise typer.Exit(code=3) from exc

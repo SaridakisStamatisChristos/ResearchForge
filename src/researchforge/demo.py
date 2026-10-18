@@ -19,7 +19,6 @@ from researchforge.application.qualification import HypothesisSpec, Qualificatio
 from researchforge.application.runner import RunnerService
 from researchforge.domain.serialization import canonical_json
 
-
 # Kept self-contained so editable installs and installed wheels behave identically.
 TOY_EVALUATOR = """\
 import argparse
@@ -67,9 +66,7 @@ class DemoError(RuntimeError):
 def _git(repository: Path, *argv: str) -> str:
     command = ["git", "-C", str(repository), *argv]
     try:
-        result = subprocess.run(
-            command, capture_output=True, check=True, text=True, timeout=15
-        )
+        result = subprocess.run(command, capture_output=True, check=True, text=True, timeout=15)
     except (OSError, subprocess.SubprocessError) as exc:
         raise DemoError(f"Local fixture Git operation failed: {argv[0]}") from exc
     return result.stdout.strip()
@@ -86,10 +83,7 @@ def _commit_model(repository: Path, label: str, limit: int) -> str:
 
 
 def _write_cases(directory: Path, role: str, values: tuple[int, int]) -> None:
-    rows = [
-        {"id": f"{role}-{x}", "x": x, "target": 2 * x + 1}
-        for x in values
-    ]
+    rows = [{"id": f"{role}-{x}", "x": x, "target": 2 * x + 1} for x in values]
     (directory / f"{role}.json").write_bytes(canonical_json({"cases": rows}) + b"\n")
 
 
@@ -132,8 +126,12 @@ def run_demo(output: Path) -> dict[str, Any]:
         "metric": {"name": "mean_absolute_error", "direction": "min", "unit": "errors"},
         "evaluation": {
             "argv": [
-                sys.executable, "evaluator.py",
-                "--candidate", "{candidate_dir}", "--split", "{split_file}",
+                sys.executable,
+                "evaluator.py",
+                "--candidate",
+                "{candidate_dir}",
+                "--split",
+                "{split_file}",
             ],
             "cwd": "{evaluator_dir}",
             "timeout_seconds": 10,
@@ -227,9 +225,7 @@ def run_demo(output: Path) -> dict[str, Any]:
         "final_result": conclusion,
         "qualification_exposure": verdict_good["qualification_attempt_exposure"],
         "frozen_evaluator_sha256": frozen.evaluator_source_sha256,
-        "frozen_split_sha256": {
-            name: split.sha256 for name, split in frozen.splits.items()
-        },
+        "frozen_split_sha256": {name: split.sha256 for name, split in frozen.splits.items()},
         "ledger_event_count": verified["ledger"]["event_count"],
         "ledger_chain_head": verified["ledger"]["chain_head"],
         "report_json": str(root / "report.json"),

@@ -16,9 +16,7 @@ class PortableSkillError(ValueError):
 
 def _bundled_content() -> bytes:
     return (
-        resources.files("researchforge")
-        .joinpath("portable_skills", NAME, "SKILL.md")
-        .read_bytes()
+        resources.files("researchforge").joinpath("portable_skills", NAME, "SKILL.md").read_bytes()
     )
 
 
