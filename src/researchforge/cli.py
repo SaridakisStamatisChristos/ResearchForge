@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from researchforge import __version__
 from researchforge.application.campaigns import CampaignService, FrozenStateError, ManifestError
+from researchforge.application.runner import ExecutionRefused, RunnerIntegrityError, RunnerService
 from researchforge.domain.envelope import ApiError, ResponseEnvelope
 from researchforge.domain.models import (
     CampaignManifest,
@@ -24,6 +25,8 @@ contracts = typer.Typer(help="Inspect public, versioned contracts.")
 app.add_typer(contracts, name="contracts")
 campaign = typer.Typer(help="Initialize, validate and freeze local campaigns.")
 app.add_typer(campaign, name="campaign")
+run_commands = typer.Typer(help="Trusted-local evaluator execution; not a sandbox.")
+app.add_typer(run_commands, name="run")
 
 
 def version_callback(value: bool) -> None:
@@ -127,6 +130,48 @@ def campaign_inspect(
         else:
             typer.echo(json.dumps(data, indent=2, sort_keys=True))
     except (ManifestError, FrozenStateError) as exc:
+        typer.echo(f"CORRUPT: {exc}", err=True)
+        raise typer.Exit(code=6) from exc
+
+
+@run_commands.command("evaluate")
+def run_evaluate(
+    campaign_path: Annotated[Path, typer.Option("--campaign")],
+    split: Annotated[str, typer.Option("--split")],
+    approve_trusted_local: Annotated[bool, typer.Option("--approve-trusted-local")] = False,
+) -> None:
+    """Run an explicitly approved dev/qualification evaluator (never final)."""
+    try:
+        outcome = RunnerService(campaign_path).run(role=split, approved=approve_trusted_local)
+        state = outcome["status"]
+        response = ResponseEnvelope(
+            status="OK" if state == "SUCCEEDED" else "UNKNOWN" if state == "UNKNOWN" else "FAILED",
+            data=outcome,
+        )
+        typer.echo(response.model_dump_json())
+        if state != "SUCCEEDED":
+            raise typer.Exit(code=5 if state == "UNKNOWN" else 4)
+    except ExecutionRefused as exc:
+        typer.echo(f"REFUSED: {exc}", err=True)
+        raise typer.Exit(code=3) from exc
+    except RunnerIntegrityError as exc:
+        typer.echo(f"CORRUPT: {exc}", err=True)
+        raise typer.Exit(code=6) from exc
+
+
+@run_commands.command("recover")
+def run_recover(
+    campaign_path: Annotated[Path, typer.Option("--campaign")],
+    mark_unknown: Annotated[bool, typer.Option("--mark-unknown")] = False,
+) -> None:
+    """Mark interrupted attempts UNKNOWN; never auto-replay them."""
+    try:
+        ids = RunnerService(campaign_path).recover_unknown(approved=mark_unknown)
+        typer.echo(ResponseEnvelope(status="OK", data={"marked_unknown": ids}).model_dump_json())
+    except ExecutionRefused as exc:
+        typer.echo(f"REFUSED: {exc}", err=True)
+        raise typer.Exit(code=3) from exc
+    except RunnerIntegrityError as exc:
         typer.echo(f"CORRUPT: {exc}", err=True)
         raise typer.Exit(code=6) from exc
 

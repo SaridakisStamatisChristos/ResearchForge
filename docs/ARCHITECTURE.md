@@ -14,3 +14,10 @@ and explicit freeze service. The immutable lock contains complete source Git OID
 Python source hashes, dataset split hashes/counts, policy and environment fingerprints.
 Only trusted `file://` repositories are accepted. Split JSON input uses `{"cases":[{"id":"..."}]}`,
 with globally unique IDs across roles; symlink escapes fail closed.
+
+PR04 adds an explicit-approval trusted-local runner: detached Git worktrees at a
+frozen full commit OID, bounded shell-free subprocesses, strict parsed results, CAS
+raw output references and append-only start/terminal attempt events. The
+`final` split remains sealed. A per-campaign OS file lock serializes execution
+and explicit recovery; an interrupted `ATTEMPT_STARTED` is never silently replayed.
+This is not a security sandbox and makes no statistical claims.

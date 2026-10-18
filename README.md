@@ -55,3 +55,26 @@ rf campaign inspect --campaign /tmp/my-rf-campaign --json
 These commands resolve full local Git OIDs, evaluator Python file digests, disjoint split IDs,
 policy and environment fingerprints. The lock cannot be silently overwritten. No evaluator
 command is executed by PR03, and no benchmark score is produced.
+
+## PR04 trusted-local evaluator execution
+
+```bash
+rf run evaluate --campaign /tmp/my-rf-campaign --split dev --approve-trusted-local
+rf run evaluate --campaign /tmp/my-rf-campaign --split qualification --approve-trusted-local
+rf run recover --campaign /tmp/my-rf-campaign --mark-unknown
+```
+
+**Danger: this is not a sandbox.** Only authorize commands from code you trust to run
+on your machine. The runner does not read arbitrary external repository URLs, invoke
+a shell, or accept `final` split runs. It creates ResearchForge-owned detached Git
+worktrees, pins full commit/tree identities, limits process wall time and captured
+stdout/stderr, and stores raw output and immutable attempt records in the local CAS
+and ledger. Scripts are executed with a small allowlisted environment; this is
+defense in depth, not isolation.
+
+Only a zero-exit, non-truncated, correctly parsed result matching frozen metric,
+direction, units, sample count, digest and correctness is recorded as
+`ATTEMPT_SUCCEEDED`. An interrupted or ambiguous attempt stays `UNKNOWN`; explicit
+recovery records `ATTEMPT_UNKNOWN` without rerunning it. Worktrees are intentionally
+retained for audit; automatic cleanup is not implemented. PR05 will add the
+hypothesis/candidate qualification state machine and PR06 the sealed final run.
