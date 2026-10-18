@@ -21,6 +21,7 @@ from researchforge.application.runner import (
     _pairs_unique,
     _reject_constant,
 )
+from researchforge.audit import audit_commands
 from researchforge.demo import DemoError, run_demo
 from researchforge.domain.envelope import ApiError, ResponseEnvelope
 from researchforge.domain.models import (
@@ -74,6 +75,7 @@ skill_commands = typer.Typer(help="Validate or explicitly export portable Agent 
 app.add_typer(skill_commands, name="skill")
 literature_commands = typer.Typer(help="Source-specific scholarly metadata retrieval.")
 app.add_typer(literature_commands, name="literature")
+app.add_typer(audit_commands, name="audit")
 
 
 def version_callback(value: bool) -> None:
