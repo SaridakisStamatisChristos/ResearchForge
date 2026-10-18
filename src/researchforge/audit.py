@@ -14,6 +14,7 @@ from typing import Annotated, Any, Literal
 import typer
 from pydantic import Field, ValidationError, model_validator
 
+from researchforge.adapters.cas import ArtifactIntegrityError
 from researchforge.application.evidence import EventLedger, LedgerIntegrityError
 from researchforge.application.final import FinalService
 from researchforge.application.runner import RunnerIntegrityError
@@ -379,6 +380,6 @@ def audit_claims_cli(
     except (AuditInputError, ValidationError, LiteratureInputError, OSError) as exc:
         typer.echo(f"INVALID_INPUT: {exc}", err=True)
         raise typer.Exit(code=2) from exc
-    except (RunnerIntegrityError, LedgerIntegrityError) as exc:
+    except (RunnerIntegrityError, LedgerIntegrityError, ArtifactIntegrityError) as exc:
         typer.echo(f"CORRUPT: {exc}", err=True)
         raise typer.Exit(code=6) from exc
