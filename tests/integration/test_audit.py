@@ -42,7 +42,7 @@ def test_frozen_final_and_selection_events(tmp_path: Path) -> None:
     root = Path(fixture["campaign_path"])
     from researchforge.application.evidence import EventLedger
     ledger = EventLedger(root)
-    events = ledger.read_events("toy-campaign-001")
+    events = ledger.read_events("toy-optimizer-v1")
     final = next(event for event in events if event.event_type == "FINAL_EVALUATED")
     qualified = next(
         event for event in reversed(events)
@@ -71,14 +71,13 @@ def test_frozen_final_and_selection_events(tmp_path: Path) -> None:
     parsed = json.loads(result.output)
     assert parsed["data"]["counts"]["CONTRADICTED"] == 1
     corrupt = root / ".researchforge" / "blobs"
-    blob = next(corrupt.rglob("*"))
+    blob = next(entry for entry in corrupt.rglob("*") if entry.is_file())
     # A validated event-chain or source blob corruption must never give a clean audit.
-    if blob.is_file():
-        blob.write_bytes(b"changed")
-        failure = runner.invoke(
-            app, ["audit", "claims", "--input", str(file), "--campaign", str(root)]
-        )
-        assert failure.exit_code == 6
+    blob.write_bytes(b"changed")
+    failure = runner.invoke(
+        app, ["audit", "claims", "--input", str(file), "--campaign", str(root)]
+    )
+    assert failure.exit_code == 6
 
 
 def test_metadata_observed_never_becomes_scientific_support(tmp_path: Path) -> None:
