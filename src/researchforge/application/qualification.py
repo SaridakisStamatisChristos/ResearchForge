@@ -22,6 +22,7 @@ from researchforge.application.runner import (
 )
 from researchforge.domain.models import ArtifactRef, EvaluationResult, StrictModel
 from researchforge.domain.serialization import canonical_json
+from researchforge.hypothesis_forge import HypothesisDraft
 
 
 class HypothesisSpec(StrictModel):
@@ -341,3 +342,82 @@ class QualificationService:
             result["supersedes_event_sha256"] = prior[0].event_sha256 if prior else None
             self._append(ledger, frozen.campaign_id, "QUALIFICATION_DECIDED", candidate_id, result)
             return result
+
+    def admit_forge_draft(
+        self, draft: HypothesisDraft, *, approved_by_human: bool, expected_sha256: str
+    ) -> dict[str, Any]:
+        """Explicitly approve a draft; never infer approval from model output.
+
+        An approval event is written BEFORE registration. A crash between events
+        leaves an unactionable approval record; retry completes without replacing
+        history. Existing candidate and final-selection guards stay authoritative.
+        """
+        if not approved_by_human:
+            raise ExecutionRefused("Human approval flag is mandatory")
+        if draft.draft_sha256 != expected_sha256:
+            raise ExecutionRefused("Reviewed draft digest changed")
+        design = draft.design
+        spec = HypothesisSpec(
+            hypothesis_id=design.hypothesis_id,
+            proposition=design.proposition,
+            intervention=design.intervention,
+            falsifier=design.falsifier,
+            parent_id=design.parent_id,
+        )
+        with self.runner._lease():
+            manifest, frozen, _, _, ledger = self.runner._ready()
+            self._selection_open(ledger, frozen.campaign_id)
+            if design.expected_metric != manifest.metric.name:
+                raise ExecutionRefused("Draft metric differs from frozen campaign metric")
+            if design.expected_direction != manifest.metric.direction:
+                raise ExecutionRefused("Draft direction differs from frozen campaign metric")
+            if design.max_attempts > manifest.budget.max_attempts:
+                raise ExecutionRefused("Draft attempt cap exceeds campaign budget")
+            hypotheses, _ = self.registry(ledger, frozen.campaign_id)
+            if spec.parent_id is not None and spec.parent_id not in hypotheses:
+                raise ExecutionRefused("Parent hypothesis does not exist")
+            if spec.hypothesis_id not in hypotheses and len(hypotheses) >= manifest.budget.max_hypotheses:
+                raise ExecutionRefused("Hypothesis budget exhausted")
+            if spec.hypothesis_id in hypotheses and hypotheses[spec.hypothesis_id] != spec:
+                raise ExecutionRefused("Hypothesis ID cannot be reused with other contents")
+            prior = [
+                payload
+                for event, payload in self._payloads(ledger, frozen.campaign_id)
+                if event.event_type == "HYPOTHESIS_FORGE_APPROVED"
+                and event.subject_id == spec.hypothesis_id
+            ]
+            approval = {
+                "draft_sha256": draft.draft_sha256,
+                "draft": draft.model_dump(mode="json"),
+                "approval": "EXPLICIT_HUMAN_CLI",
+                "no_execution": True,
+            }
+            if any(saved != approval for saved in prior):
+                raise RunnerIntegrityError("Conflicting immutable HypothesisForge approval")
+            if spec.hypothesis_id in hypotheses:
+                if not prior:
+                    raise ExecutionRefused("Existing legacy hypothesis has no forge approval")
+                return {"hypothesis_id": spec.hypothesis_id, "status": "EXISTS"}
+            if not prior:
+                self._append(
+                    ledger,
+                    frozen.campaign_id,
+                    "HYPOTHESIS_FORGE_APPROVED",
+                    spec.hypothesis_id,
+                    approval,
+                )
+            self._append(
+                ledger,
+                frozen.campaign_id,
+                "HYPOTHESIS_PROPOSED",
+                spec.hypothesis_id,
+                spec.model_dump(mode="json"),
+            )
+            return {
+                "hypothesis_id": spec.hypothesis_id,
+                "status": "PROPOSED",
+                "draft_sha256": draft.draft_sha256,
+                "model_generated": draft.status == "AI_PROPOSED_UNVERIFIED",
+                "human_approved": True,
+                "evaluation_executed": False,
+            }
