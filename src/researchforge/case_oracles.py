@@ -4,6 +4,7 @@ SAT models are checked clause-by-clause. UNSAT is established only with a
 bounded exhaustive independent search, NOT by trusting the solver's claim.
 Graph paths are checked against a separate Bellman-Ford implementation.
 """
+
 from __future__ import annotations
 
 import json
@@ -171,8 +172,7 @@ def read_graph(data: bytes) -> tuple[tuple[str, ...], str, list[tuple[str, str, 
             or len(nodes) == 0
             or len(nodes) > 256
             or not all(
-                isinstance(n, str) and re.fullmatch(r"[A-Za-z0-9._-]{1,64}", n)
-                for n in nodes
+                isinstance(n, str) and re.fullmatch(r"[A-Za-z0-9._-]{1,64}", n) for n in nodes
             )
             or len(nodes) != len(set(nodes))
             or not isinstance(source, str)
@@ -240,8 +240,9 @@ def verify_graph(data: bytes, stdout: bytes, exit_code: int | None) -> tuple[Sta
         return "UNKNOWN", "MALFORMED_GRAPH_RESULT"
 
 
-def oracle(kind: Literal["sat", "shortest_path"], data: bytes, stdout: bytes,
-           exit_code: int | None) -> tuple[Status, str]:
+def oracle(
+    kind: Literal["sat", "shortest_path"], data: bytes, stdout: bytes, exit_code: int | None
+) -> tuple[Status, str]:
     if kind == "sat":
         return verify_sat(data, stdout, exit_code)
     return verify_graph(data, stdout, exit_code)
