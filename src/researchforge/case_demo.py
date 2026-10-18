@@ -147,7 +147,9 @@ def run_case_demo(root: Path) -> dict[str, Any]:
                 "name": "toy-reference",
                 "argv": [str(binary), str(program), "{input}", "reference"],
                 "binary_sha256": binary_sha,
-                "version_or_commit": f"toy-python-{sys.version_info.major}.{sys.version_info.minor}",
+                "version_or_commit": (
+                    f"toy-python-{sys.version_info.major}.{sys.version_info.minor}"
+                ),
             },
             "right": {
                 "name": "toy-defective",
