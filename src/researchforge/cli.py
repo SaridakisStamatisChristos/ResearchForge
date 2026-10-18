@@ -120,7 +120,8 @@ def schema(
     }
     if name not in models:
         raise typer.BadParameter(
-            "choose campaign, evaluator-result, evidence-event, manifest-lock, hypothesis-design or hypothesis-draft"
+            "choose campaign, evaluator-result, evidence-event, manifest-lock, "
+            "hypothesis-design or hypothesis-draft"
         )
     typer.echo(json.dumps(models[name].model_json_schema(), indent=2, sort_keys=True))
 
