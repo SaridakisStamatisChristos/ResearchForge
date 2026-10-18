@@ -140,7 +140,7 @@ def test_real_good_and_overfit_rejected(
 def test_budget_identity_immutability_and_parent(
     research: tuple[QualificationService, RunnerService, Path, dict[str, str]],
 ) -> None:
-    service, runner, _, commits = research
+    service, runner, repo, commits = research
     first = add(service, "h1")
     assert service.add_hypothesis(first)["status"] == "EXISTS"
     with pytest.raises(ExecutionRefused, match="Parent"):
@@ -174,6 +174,12 @@ def test_budget_identity_immutability_and_parent(
     service.register(candidate_id="overfit", hypothesis_id="h2", commit=commits["overfit"])
     with pytest.raises(ExecutionRefused, match="already registered"):
         service.register(candidate_id="third", hypothesis_id="h1", commit=commits["overfit"])
+    (repo / "third.txt").write_text("distinct commit\n")
+    git(repo, "add", "third.txt")
+    git(repo, "commit", "-qm", "third")
+    third = git(repo, "rev-parse", "HEAD")
+    with pytest.raises(ExecutionRefused, match="count budget"):
+        service.register(candidate_id="third", hypothesis_id="h1", commit=third)
 
 
 def test_inconclusive_then_append_superseding_decision(
@@ -213,7 +219,7 @@ def test_replay_refuses_forged_success(
     ledger.append_event(
         "selection-001", size, "ATTEMPT_SUCCEEDED", "forged", {"status": "SUCCEEDED"}
     )
-    with pytest.raises(RunnerIntegrityError, match="no start"):
+    with pytest.raises(RunnerIntegrityError, match="no unique start"):
         service.decide("good")
 
 
