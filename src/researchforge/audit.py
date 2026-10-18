@@ -203,7 +203,10 @@ def _campaign_claim(
             claim,
             "VERIFIED",
             used=[sha],
-            note="Only the typed frozen final-status predicate was replayed; claim prose is not validated",
+            note=(
+                "Only the typed frozen final-status predicate was replayed; "
+                "claim prose is not validated"
+            ),
         )
     # The append-only ledger validates identity and integrity, but does not
     # independently establish statistical or scientific merit.
