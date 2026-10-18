@@ -281,7 +281,10 @@ def verify_bundle(folder: Path) -> dict[str, Any]:
         for raw in result["rows"]:
             if not isinstance(raw, dict):
                 raise CaseBundleError("Invalid case-study trial record")
-            key = (raw.get("case_id"), raw.get("tool"))
+            row_id, row_tool = raw.get("case_id"), raw.get("tool")
+            if not isinstance(row_id, str) or not isinstance(row_tool, str):
+                raise CaseBundleError("Invalid row case or tool identity")
+            key = (row_id, row_tool)
             if key in by_pair:
                 raise CaseBundleError("Repeated case/tool pair")
             if not isinstance(raw.get("runtime_seconds"), (float, int)) or (
