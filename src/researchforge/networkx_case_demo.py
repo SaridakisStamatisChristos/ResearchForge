@@ -101,7 +101,7 @@ def graph_cases() -> list[tuple[str, str, dict[str, Any]]]:
 
 def run_networkx_case_study(root: Path) -> dict[str, Any]:
     """Execute a fresh two-arm, 12-case third-party algorithms study."""
-    import networkx as nx
+    import networkx as nx  # type: ignore[import-untyped]  # NetworkX lacks bundled stubs
 
     if nx.__version__ != NETWORKX_VERSION:
         raise RuntimeError("NetworkX version does not match pinned experimental dependency")
