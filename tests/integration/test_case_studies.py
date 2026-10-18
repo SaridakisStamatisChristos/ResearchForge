@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -195,6 +196,15 @@ def test_pinned_wrapper_source_drift_refuses_execution(tmp_path: Path) -> None:
     with pytest.raises(CaseExecutionRefused, match="auxiliary"):
         run_cases(source / "plan.json", tmp_path / "refused", approved=True)
     assert not (tmp_path / "refused").exists()
+
+
+def test_replay_survives_raw_bundle_relocation(tmp_path: Path) -> None:
+    run_case_demo(tmp_path / "fixture")
+    original = tmp_path / "fixture" / "sat" / "raw-bundle"
+    copied = tmp_path / "independent-reviewer" / "case-bundle"
+    copied.parent.mkdir()
+    shutil.copytree(original, copied)
+    assert verify_bundle(copied)["bundle_sha256"] == verify_bundle(original)["bundle_sha256"]
 
 
 def test_schema_is_publicly_exposed() -> None:
