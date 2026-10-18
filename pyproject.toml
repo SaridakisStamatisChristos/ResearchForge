@@ -16,6 +16,9 @@ dev = ["pytest>=8,<10", "hypothesis>=6,<7", "ruff>=0.8,<1", "mypy>=1.12,<2"]
 [project.scripts]
 rf = "researchforge.cli:app"
 
+[tool.setuptools.package-data]
+researchforge = ["portable_skills/researchforge-experiment/SKILL.md"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
