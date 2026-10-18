@@ -1,0 +1,30 @@
+name: Temporary PR05 final formatter
+on:
+  push:
+    branches: ["pr/05-hypothesis-qualification"]
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Ruff
+        run: python -m pip install "ruff>=0.8,<1"
+      - name: Apply formatting
+        run: |
+          ruff format src/researchforge/application/qualification.py tests/integration/test_qualification.py
+          git diff --check
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/researchforge/application/qualification.py tests/integration/test_qualification.py
+            git commit -m "style(pr05): format replay audit and regression test"
+            git push origin HEAD:pr/05-hypothesis-qualification
+          fi
