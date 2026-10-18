@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -104,7 +104,7 @@ def test_event_utc_digest_identity() -> None:
         EvidenceEvent.model_validate({**payload, "occurred_at_utc": datetime.now()})
     with pytest.raises(ValidationError):
         EvidenceEvent.model_validate({**payload, "event_sha256": "not-a-digest"})
-    assert datetime.now(timezone.utc).utcoffset().total_seconds() == 0
+    assert datetime.now(UTC).utcoffset().total_seconds() == 0
 
 
 def test_error_envelope_serialization() -> None:
