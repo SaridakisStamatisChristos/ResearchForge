@@ -272,9 +272,16 @@ def hypothesis_draft(
     try:
         draft = assemble_draft(read_design(file))
         save_draft(output, draft)
-        typer.echo(ResponseEnvelope(status="OK", data={
-            "draft_sha256": draft.draft_sha256, "status": draft.status, "path": str(output)
-        }).model_dump_json())
+        typer.echo(
+            ResponseEnvelope(
+                status="OK",
+                data={
+                    "draft_sha256": draft.draft_sha256,
+                    "status": draft.status,
+                    "path": str(output),
+                },
+            ).model_dump_json()
+        )
     except (OSError, ValueError, ValidationError) as exc:
         typer.echo(f"INVALID_INPUT: {exc}", err=True)
         raise typer.Exit(code=2) from exc
@@ -285,9 +292,7 @@ def hypothesis_generate(
     brief: Annotated[Path, typer.Option("--brief")],
     output: Annotated[Path, typer.Option("--output")],
     model: Annotated[str, typer.Option("--model")],
-    allow_model_network: Annotated[
-        bool, typer.Option("--allow-model-network")
-    ] = False,
+    allow_model_network: Annotated[bool, typer.Option("--allow-model-network")] = False,
 ) -> None:
     """Opt-in OpenAI draft generation. Never approve or execute model output."""
     if not allow_model_network:
@@ -297,9 +302,16 @@ def hypothesis_generate(
         text = brief.read_text(encoding="utf-8")
         draft = generate_model_draft(text, model=model, allow_network=True)
         save_draft(output, draft)
-        typer.echo(ResponseEnvelope(status="OK", data={
-            "draft_sha256": draft.draft_sha256, "status": draft.status, "path": str(output)
-        }).model_dump_json())
+        typer.echo(
+            ResponseEnvelope(
+                status="OK",
+                data={
+                    "draft_sha256": draft.draft_sha256,
+                    "status": draft.status,
+                    "path": str(output),
+                },
+            ).model_dump_json()
+        )
     except (OSError, ValueError, ValidationError, ForgeInputError) as exc:
         typer.echo(f"FAILED: {exc}", err=True)
         raise typer.Exit(code=4) from exc
