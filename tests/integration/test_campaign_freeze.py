@@ -32,26 +32,31 @@ def source(tmp_path: Path) -> tuple[Path, Path]:
     (spec / "evaluator.py").write_text('print("trusted evaluator")\n')
     (spec / "splits").mkdir()
     for split, ident in (("dev", "D"), ("qualification", "Q"), ("final", "F")):
-        (spec / "splits" / f"{split}.json").write_text(
-            json.dumps({"cases": [{"id": ident}]})
-        )
+        (spec / "splits" / f"{split}.json").write_text(json.dumps({"cases": [{"id": ident}]}))
     campaign = {
-        "schema_version": "1.0", "campaign_id": "test-001", "objective": "Minimize errors",
+        "schema_version": "1.0",
+        "campaign_id": "test-001",
+        "objective": "Minimize errors",
         "base": {"repository": repository.as_uri(), "commit": "HEAD"},
         "metric": {"name": "errors", "direction": "min", "unit": "errors"},
         "evaluation": {
             "argv": ["python", "evaluator.py", "--split", "{split_file}"],
-            "cwd": "{evaluator_dir}", "timeout_seconds": 10,
-            "max_output_bytes": 10000, "result_schema": "evaluator-result-v1"
+            "cwd": "{evaluator_dir}",
+            "timeout_seconds": 10,
+            "max_output_bytes": 10000,
+            "result_schema": "evaluator-result-v1",
         },
         "splits": {role: f"splits/{role}.json" for role in ("dev", "qualification", "final")},
         "budget": {"max_hypotheses": 2, "max_attempts": 4, "max_wall_seconds": 200},
         "qualification_policy": {
-            "name": "strict-improvement-v1", "baseline_required": True,
-            "minimum_absolute_improvement": 1, "correctness_checks": ["result-schema"],
-            "allow_equal": False
+            "name": "strict-improvement-v1",
+            "baseline_required": True,
+            "minimum_absolute_improvement": 1,
+            "correctness_checks": ["result-schema"],
+            "allow_equal": False,
         },
-        "seed": 1701, "execution_trust": "local_trusted_only"
+        "seed": 1701,
+        "execution_trust": "local_trusted_only",
     }
     manifest = spec / "campaign.json"
     manifest.write_text(json.dumps(campaign))
@@ -112,14 +117,17 @@ def test_cli_real_init_freeze_inspect(source: tuple[Path, Path], tmp_path: Path)
     manifest, _ = source
     output = tmp_path / "campaign"
     runner = CliRunner()
-    assert runner.invoke(app, ["campaign", "init", "--manifest", str(manifest),
-                                "--output", str(output)]).exit_code == 0
+    assert (
+        runner.invoke(
+            app, ["campaign", "init", "--manifest", str(manifest), "--output", str(output)]
+        ).exit_code
+        == 0
+    )
     valid = runner.invoke(app, ["campaign", "validate", "--campaign", str(output)])
     assert valid.exit_code == 0, valid.output
     frozen = runner.invoke(app, ["campaign", "freeze", "--campaign", str(output)])
     assert frozen.exit_code == 0, frozen.output
-    inspected = runner.invoke(app, ["campaign", "inspect", "--campaign", str(output),
-                                    "--json"])
+    inspected = runner.invoke(app, ["campaign", "inspect", "--campaign", str(output), "--json"])
     assert inspected.exit_code == 0, inspected.output
     assert json.loads(inspected.output)["data"]["ledger"]["event_count"] == 1
 
