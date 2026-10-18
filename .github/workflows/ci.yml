@@ -39,3 +39,19 @@ jobs:
           rf skill validate --name researchforge-experiment > /dev/null
           python -c 'import json,os,pathlib; p=pathlib.Path(os.environ["RUNNER_TEMP"])/"researchforge-mvp"/"summary.json"; s=json.loads(p.read_text()); assert s["decision_statuses"]=={"good":"QUALIFIED","overfit":"REJECTED"} and s["final_status"]=="FINAL_SUPPORTED"'
 
+      - name: Real offline paired case studies with independent raw-log replay
+        run: |
+          python -m researchforge.case_demo --output "${RUNNER_TEMP}/researchforge-pr13-case-studies" > "${RUNNER_TEMP}/pr13-summary.json"
+          rf cases verify --bundle "${RUNNER_TEMP}/researchforge-pr13-case-studies/sat/raw-bundle" > "${RUNNER_TEMP}/pr13-sat.json"
+          rf cases verify --bundle "${RUNNER_TEMP}/researchforge-pr13-case-studies/shortest_path/raw-bundle" > "${RUNNER_TEMP}/pr13-graph.json"
+      - name: Publish real fixture process raw logs and independent results
+        uses: actions/upload-artifact@v4
+        with:
+          name: researchforge-pr13-case-studies-py${{ matrix.python }}
+          path: |
+            ${{ runner.temp }}/researchforge-pr13-case-studies/
+            ${{ runner.temp }}/pr13-summary.json
+            ${{ runner.temp }}/pr13-sat.json
+            ${{ runner.temp }}/pr13-graph.json
+          if-no-files-found: error
+          retention-days: 30
