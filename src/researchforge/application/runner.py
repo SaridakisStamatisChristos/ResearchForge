@@ -216,7 +216,7 @@ class RunnerService:
                     handle.write(b"0")
                     handle.flush()
                     handle.seek(0)
-                    getattr(msvcrt, "locking")(handle.fileno(), getattr(msvcrt, "LK_NBLCK"), 1)
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)  # type: ignore[attr-defined]
             except (OSError, BlockingIOError) as exc:
                 raise ExecutionRefused(
                     "A runner or recovery operation already owns this campaign"
@@ -228,7 +228,7 @@ class RunnerService:
                     fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
                 else:
                     handle.seek(0)
-                    getattr(msvcrt, "locking")(handle.fileno(), getattr(msvcrt, "LK_UNLCK"), 1)
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore[attr-defined]
 
     def recover_unknown(self, *, approved: bool) -> list[str]:
         """Explicit operator adjudication. Never replay a possibly executed command."""
