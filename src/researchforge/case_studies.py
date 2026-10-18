@@ -340,25 +340,38 @@ def verify_bundle(folder: Path) -> dict[str, Any]:
                 success = verified_status in {"VERIFIED_SAT", "VERIFIED_UNSAT", "VERIFIED_GRAPH"}
                 runtime = row["runtime_seconds"]
                 par2 = runtime if success else 2.0 * plan.cutoff_seconds
-                record = {"tool": tool.name, "status": verified_status, "reason": reason,
-                          "runtime_seconds": runtime, "par2_seconds": par2,
-                          "stdout_sha256": row["stdout_sha256"],
-                          "stderr_sha256": row["stderr_sha256"]}
+                record = {
+                    "tool": tool.name,
+                    "status": verified_status,
+                    "reason": reason,
+                    "runtime_seconds": runtime,
+                    "par2_seconds": par2,
+                    "stdout_sha256": row["stdout_sha256"],
+                    "stderr_sha256": row["stderr_sha256"],
+                }
                 summary[label] = record
                 score = 1.0 if success else 0.0
                 (a_scores if label == "left" else b_scores)[item.case_id] = score
-                family_row = families.setdefault(item.family, {plan.left.name: 0,
-                                                               plan.right.name: 0})
-                category_row = by_category.setdefault(category, {plan.left.name: 0,
-                                                                 plan.right.name: 0})
+                family_row = families.setdefault(
+                    item.family, {plan.left.name: 0, plan.right.name: 0}
+                )
+                category_row = by_category.setdefault(
+                    category, {plan.left.name: 0, plan.right.name: 0}
+                )
                 if success:
                     family_row[tool.name] += 1
                     category_row[tool.name] += 1
             cases.append(summary)
-        left_only = sum(x["left"]["status"].startswith("VERIFIED") and
-                        not x["right"]["status"].startswith("VERIFIED") for x in cases)
-        right_only = sum(x["right"]["status"].startswith("VERIFIED") and
-                         not x["left"]["status"].startswith("VERIFIED") for x in cases)
+        left_only = sum(
+            x["left"]["status"].startswith("VERIFIED")
+            and not x["right"]["status"].startswith("VERIFIED")
+            for x in cases
+        )
+        right_only = sum(
+            x["right"]["status"].startswith("VERIFIED")
+            and not x["left"]["status"].startswith("VERIFIED")
+            for x in cases
+        )
         comparison = paired_comparison(
             a_scores, b_scores, direction="max", seed=plan.seed, resamples=1000
         )
