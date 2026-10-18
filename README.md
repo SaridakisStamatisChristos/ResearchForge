@@ -78,3 +78,34 @@ direction, units, sample count, digest and correctness is recorded as
 recovery records `ATTEMPT_UNKNOWN` without rerunning it. Worktrees are intentionally
 retained for audit; automatic cleanup is not implemented. PR05 will add the
 hypothesis/candidate qualification state machine and PR06 the sealed final run.
+
+## PR05: candidate and deterministic qualification lifecycle
+
+Use a **full commit OID** in the base manifest *before* freezing. If the manifest
+contains the mutable name `HEAD`, advancing the source checkout makes freeze
+inspection fail closed as designed.
+
+```bash
+rf hypothesis add --campaign /tmp/my-rf-campaign --file hypothesis.json
+rf candidate register --campaign /tmp/my-rf-campaign \
+  --id candidate-a --hypothesis h-001 --commit <full-commit-oid>
+rf run evaluate --campaign /tmp/my-rf-campaign --split dev --approve-trusted-local
+rf run evaluate --campaign /tmp/my-rf-campaign --split qualification --approve-trusted-local
+rf run evaluate --campaign /tmp/my-rf-campaign --candidate candidate-a \
+  --split dev --approve-trusted-local
+rf run evaluate --campaign /tmp/my-rf-campaign --candidate candidate-a \
+  --split qualification --approve-trusted-local
+rf qualify --campaign /tmp/my-rf-campaign --candidate candidate-a
+```
+
+`hypothesis.json` must contain `hypothesis_id`, `proposition`, `intervention`,
+`falsifier` and optional `parent_id`. Registration pins an immutable Git commit/tree
+and does not merge or modify source branches. Every measurement is read back from
+successful PR04 subprocess records with original stdout CAS hashes, metric/split
+validation and exact candidate identity. Failures and rejected candidates remain in
+the append-only ledger. Hypotheses and candidates are separately limited to
+`budget.max_hypotheses`; runner attempts/wall-time remain bounded by their frozen
+limits. Repeat qualification attempts count as **selection exposure** and cannot be
+presented as an untouched test. An `INCONCLUSIVE` decision can be superseded, never
+overwritten, when subsequently obtained evidence changes its basis. No final data
+is accessed at PR05. **This runner does not isolate untrusted code.**
