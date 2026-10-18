@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Callable
+from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -37,7 +38,7 @@ class EventLedger:
         self.root = campaign.resolve() / ".researchforge"
         self.cas = FileSystemCAS(self.root / "blobs")
         self.database = self.root / "ledger.sqlite3"
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             connection.execute("SELECT 1")
 
     def _connect(self) -> sqlite3.Connection:
@@ -120,7 +121,7 @@ class EventLedger:
             connection.close()
 
     def read_events(self, campaign_id: str) -> list[EvidenceEvent]:
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             rows = connection.execute(
                 "SELECT event_json FROM events WHERE campaign_id=? ORDER BY sequence",
                 (campaign_id,),
@@ -132,7 +133,7 @@ class EventLedger:
 
     def verify(self, campaign_id: str) -> dict[str, str | int | None]:
         """Offline replay: no subprocess, network or data mutation."""
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             rows = connection.execute(
                 "SELECT sequence,event_id,event_json,payload_sha256,event_sha256 "
                 "FROM events WHERE campaign_id=? ORDER BY sequence",
@@ -147,6 +148,8 @@ class EventLedger:
             expected_hash = digest_bytes(
                 canonical_json(event.model_dump(mode="json", exclude={"event_sha256"}))
             )
+            if content != canonical_json(event.model_dump(mode="json")).decode("utf-8"):
+                raise LedgerIntegrityError(f"Noncanonical event JSON at {number}")
             if (
                 seq != number
                 or event.sequence != number
@@ -169,7 +172,7 @@ class EventLedger:
 
     def orphan_digests(self) -> set[str]:
         """Read-only inventory for later recovery tooling; never sweep without authorization."""
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             references = {
                 str(row[0])
                 for row in connection.execute("SELECT DISTINCT payload_sha256 FROM events")
