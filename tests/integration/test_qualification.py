@@ -17,6 +17,7 @@ from researchforge.application.qualification import (
 )
 from researchforge.application.runner import ExecutionRefused, RunnerIntegrityError, RunnerService
 from researchforge.cli import app
+from researchforge.hypothesis_forge import ResearchDesign, assemble_draft
 
 
 def git(repo: Path, *args: str) -> str:
@@ -277,3 +278,60 @@ def test_forged_qualification_verdict_is_not_reused(
     )
     with pytest.raises(RunnerIntegrityError, match="contradicts deterministic replay"):
         service.qualify("good")
+
+
+def test_hypothesis_forge_admission_is_gated_and_traceable(
+    research: tuple[QualificationService, RunnerService, Path, dict[str, str]],
+) -> None:
+    service, runner, _, commits = research
+    design = ResearchDesign(
+        schema_version="1.0",
+        hypothesis_id="forge-001",
+        proposition="A controlled search change should reduce errors",
+        intervention="Adjust only the chosen search policy",
+        mechanism="Reduce misleading early search branches",
+        assumptions=["Pinned baseline and evaluator"],
+        confounders=["CPU scheduling and cache state"],
+        expected_metric="errors",
+        expected_direction="min",
+        falsifier="No error reduction on predeclared qualification cases",
+        test_plan="Run fixed-seed dev and qualification, compare against baseline",
+        max_attempts=2,
+    )
+    draft = assemble_draft(design)
+    with pytest.raises(ExecutionRefused, match="approval"):
+        service.admit_forge_draft(draft, approved_by_human=False,
+                                 expected_sha256=draft.draft_sha256)
+    with pytest.raises(ExecutionRefused, match="digest"):
+        service.admit_forge_draft(draft, approved_by_human=True,
+                                 expected_sha256="0" * 64)
+    ledger = EventLedger(runner.campaign.root)
+    assert not any(
+        event.event_type == "HYPOTHESIS_FORGE_APPROVED"
+        for event in ledger.read_events("selection-001")
+    )
+    result = service.admit_forge_draft(
+        draft, approved_by_human=True, expected_sha256=draft.draft_sha256
+    )
+    assert result["human_approved"] is True
+    assert result["evaluation_executed"] is False
+    assert service.admit_forge_draft(
+        draft, approved_by_human=True, expected_sha256=draft.draft_sha256
+    )["status"] == "EXISTS"
+    events = ledger.read_events("selection-001")
+    assert [e.event_type for e in events][-2:] == [
+        "HYPOTHESIS_FORGE_APPROVED", "HYPOTHESIS_PROPOSED"
+    ]
+    assert ledger.verify("selection-001")["event_count"] == 3
+    assert "forge-001" in service.registry(ledger, "selection-001")[0]
+    service.register(candidate_id="good", hypothesis_id="forge-001",
+                     commit=commits["good"])
+    assert service.decide("good")["status"] == "INCONCLUSIVE"
+
+    mismatched = design.model_copy(
+        update={"hypothesis_id": "forge-002", "expected_metric": "other"}
+    )
+    bad = assemble_draft(mismatched)
+    with pytest.raises(ExecutionRefused, match="metric"):
+        service.admit_forge_draft(bad, approved_by_human=True,
+                                 expected_sha256=bad.draft_sha256)
