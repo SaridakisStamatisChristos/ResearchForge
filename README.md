@@ -1,36 +1,79 @@
 # ResearchForge
 
-Local-first research experimentation toolkit, built independently from RF-ARCH-001.
+ResearchForge is a **local-first Python toolkit for reproducible research experiments**.
+It freezes experiment inputs, runs explicitly approved *trusted local* evaluators,
+records content-addressed evidence, and supports offline verification and reporting.
+Additional modules handle hypothesis review, scholarly metadata retrieval, claim
+auditing, manuscript drafts, case studies, and paired agent evaluation.
 
-## Status
+**Intended audience:** research engineers and developers who need an inspectable
+record of *what was run, with which inputs, and what the outputs support*. It is
+not an autonomous scientist, a security sandbox, a peer reviewer, or proof of
+scientific novelty or performance superiority.
 
-**PR01–PR07 MVP implementation:** typed contracts, frozen campaign inputs,
-append-only evidence/CAS, trusted-local Git worktree execution, candidate registration,
-deterministic qualification, statistical summaries, one-shot final evaluation, real offline
-toy demonstration, and a portable skill are implemented. Core operation needs no external
-API keys or network connection. This is not a security sandbox, scientific-truth
-certification, production-ready service, or a license selection.
+## First run: offline demonstration
 
-## Quick start
-
-Requires Python 3.12+.
+You need **Python 3.12+**, Git, and a checkout of this repository. No API keys,
+live providers, or external research repositories are needed for this path.
 
 ```bash
 python -m pip install -e '.[dev]'
 rf --version
-rf contracts schema --name campaign
-rf contracts schema --name evaluator-result
-python tools/generate_schemas.py --check
-pytest
+rf demo run --offline --output /tmp/rf-first-run
+rf verify --campaign /tmp/rf-first-run/campaign
+rf report --campaign /tmp/rf-first-run/campaign --format md
+pytest -q
 ```
 
-All runtime functions are local. Core use requires no service or API key. Existing projects and
-agent plugins are never modified. **No repository license has been selected.**
+The demo creates a local Git fixture and executes trusted toy evaluator
+subprocesses, including a qualified candidate, a rejected overfit candidate
+and a one-shot final comparison. The destination **must not already exist**:
+choose a fresh path for a subsequent run. Verification replays recorded
+evidence; it does not repeat the experiment. The demo's output is not a
+scientific benchmark of ResearchForge or of any external model.
 
-See `docs/ARCHITECTURE.md`, `docs/CONTRACTS.md` and `docs/roadmap.md`.
+For contributor checks in the source checkout:
 
-> Executing untrusted candidate code using a local subprocess is **not a security sandbox**.
-> Later runner phases require explicit trusted-command approval.
+```bash
+ruff check .
+ruff format --check .
+mypy src
+python tools/generate_schemas.py --check
+pytest -q
+```
+
+## Capabilities and documentation
+
+| Area | Entry point / guide | Scope |
+| --- | --- | --- |
+| Frozen campaigns, execution and final evaluation | [Contracts](docs/CONTRACTS.md), [MVP evidence](docs/MVP_ACCEPTANCE.md) | Offline trusted-local evaluator; immutable records and one-shot final gate |
+| Reproducibility architecture | [Architecture](docs/ARCHITECTURE.md) | Domain, application, adapter and CLI boundaries |
+| Scholarly metadata | [Literature commands below](#pr08--literatureforge-v01) | Optional `[literature]` extra and explicit network consent |
+| Claim auditing | [ResearchAuditor](docs/RESEARCH_AUDIT.md) | Typed evidence predicates, not semantic fact-checking |
+| Hypothesis drafts | [HypothesisForge](docs/HYPOTHESIS_FORGE.md) | Human approval; optional opt-in model draft |
+| Manuscript export | [PaperForge](docs/PAPERFORGE.md) | Evidence-labeled offline draft, not publication certification |
+| External case study | [Case studies](docs/CASE_STUDIES.md) | Reproducible NetworkX example, no superiority conclusion |
+| Paired agent evaluation | [Agent uplift](docs/AGENT_UPLIFT.md) | Mechanical CI fixture; genuine model uplift unmeasured |
+| Bundled portable skills | [Portable skills](docs/PORTABLE_SKILLS.md) | Explicit local validation/export; no automatic plugin changes |
+
+The initial offline core has no network or API-key requirement. Literature
+lookups and optional model proposals have **separate, explicit network opt-ins**.
+Trusted-local evaluation and external agent execution run processes under the
+operator's permissions; **only execute trusted code**.
+
+**License:** No repository license has been selected. Public source visibility
+does not grant permission to reuse or distribute this code. Do not treat
+third-party dependencies or their licenses as a license for ResearchForge.
+See [third-party notices](THIRD_PARTY_NOTICES.md) and
+[upstream adaptations](docs/UPSTREAM_ADAPTATIONS.md).
+
+## Detailed command reference and implementation history
+
+The numbered PR sections below document successive feature milestones.
+Commands that refer to `examples/my-campaign.json`, `hypothesis.json`, or
+`<full-commit-oid>` are **templates requiring your own files and identifiers**;
+they are not a ready-to-run fixture. Use the offline demo above for a fully
+self-contained first execution.
 
 ## PR02 API: local evidence ledger (no evaluator yet)
 
@@ -79,8 +122,8 @@ Only a zero-exit, non-truncated, correctly parsed result matching frozen metric,
 direction, units, sample count, digest and correctness is recorded as
 `ATTEMPT_SUCCEEDED`. An interrupted or ambiguous attempt stays `UNKNOWN`; explicit
 recovery records `ATTEMPT_UNKNOWN` without rerunning it. Worktrees are intentionally
-retained for audit; automatic cleanup is not implemented. PR05 will add the
-hypothesis/candidate qualification state machine and PR06 the sealed final run.
+retained for audit; automatic cleanup is not implemented. Later phases added
+the hypothesis/candidate qualification state machine and sealed final run.
 
 ## PR05: candidate and deterministic qualification lifecycle
 
