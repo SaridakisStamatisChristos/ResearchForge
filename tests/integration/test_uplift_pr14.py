@@ -80,7 +80,8 @@ def test_no_execution_without_approval_and_no_unpinned_script(tmp_path: Path) ->
         run_uplift(plan, output, approved=False)
     assert not output.exists()
     payload = json.loads(plan.read_text())
-    payload["arms"][0]["pinned_files"] = {"/tmp/absent": "0" * 64}
+    for arm in payload["arms"]:
+        arm["pinned_files"] = {"/tmp/absent": "0" * 64}
     plan.write_bytes(canonical_json(payload))
     with pytest.raises(UpliftRefused):
         run_uplift(plan, output, approved=True)
