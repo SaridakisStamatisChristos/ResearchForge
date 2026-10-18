@@ -150,6 +150,7 @@ def run_case_demo(root: Path) -> dict[str, Any]:
                 "name": "toy-reference",
                 "argv": [str(binary), str(program), "{input}", "reference"],
                 "binary_sha256": binary_sha,
+                "pinned_files": {str(program): digest_bytes(program.read_bytes())},
                 "version_or_commit": (
                     f"toy-python-{sys.version_info.major}.{sys.version_info.minor}"
                 ),
@@ -158,6 +159,7 @@ def run_case_demo(root: Path) -> dict[str, Any]:
                 "name": "toy-defective",
                 "argv": [str(binary), str(program), "{input}", "intentionally-wrong"],
                 "binary_sha256": binary_sha,
+                "pinned_files": {str(program): digest_bytes(program.read_bytes())},
                 "version_or_commit": "same-source-intentionally-faulty-mode",
             },
             "cases": cases,
