@@ -13,7 +13,13 @@ from researchforge import __version__
 from researchforge.application.campaigns import CampaignService, FrozenStateError, ManifestError
 from researchforge.application.final import FinalService
 from researchforge.application.qualification import HypothesisSpec, QualificationService
-from researchforge.application.runner import ExecutionRefused, RunnerIntegrityError, RunnerService
+from researchforge.application.runner import (
+    ExecutionRefused,
+    RunnerIntegrityError,
+    RunnerService,
+    _pairs_unique,
+    _reject_constant,
+)
 from researchforge.domain.envelope import ApiError, ResponseEnvelope
 from researchforge.domain.models import (
     CampaignManifest,
@@ -346,7 +352,11 @@ def stats_paired(
 ) -> None:
     """Statistical description of explicitly aligned case-level measurements."""
     try:
-        input_data = json.loads(file.read_text(encoding="utf-8"))
+        input_data = json.loads(
+            file.read_text(encoding="utf-8"),
+            object_pairs_hook=_pairs_unique,
+            parse_constant=_reject_constant,
+        )
         result = paired_comparison(
             input_data["baseline"],
             input_data["candidate"],
