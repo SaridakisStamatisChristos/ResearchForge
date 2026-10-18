@@ -1,0 +1,14 @@
+.........F......................................................         [100%]
+=================================== FAILURES ===================================
+____________________ test_forged_final_conclusion_rejected _____________________
+tests/integration/test_final.py:200: in test_forged_final_conclusion_rejected
+    with pytest.raises(RunnerIntegrityError, match="Multiple final conclusions"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'Multiple final conclusions'
+E     Actual message: 'Unstarted or duplicate final conclusion'
+=========================== short test summary info ============================
+FAILED tests/integration/test_final.py::test_forged_final_conclusion_rejected - AssertionError: Regex pattern did not match.
+  Expected regex: 'Multiple final conclusions'
+  Actual message: 'Unstarted or duplicate final conclusion'
+1 failed, 63 passed in 8.27s
