@@ -16,3 +16,9 @@ no claim of isolation, prevented exfiltration, safe descendant cleanup on all
 platforms, or independent truth of evaluator-supplied measurements. Interrupted
 attempts and uncertain descendant state remain `UNKNOWN` and require review.
 User repositories and branches are never automatically merged or deleted.
+
+PR05 candidates are local Git objects, not trusted simply because they have a
+hash. Each candidate evaluation still requires explicit local operator approval.
+No user branch is merged, and qualification does not consult final data or produce
+scientific confirmation. As with PR04, a locally compromised host can rewrite
+both the SQLite ledger and CAS; this system does not protect against that threat.
