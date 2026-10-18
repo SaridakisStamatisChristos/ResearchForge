@@ -71,10 +71,10 @@ jobs:
           retention-days: 30
       - name: PR14 paired-agent mechanical control, full and ablation subprocess checks
         run: |
-          python -m researchforge.uplift_fixture_demo --output "${${{ runner.temp }}_TEMP}/researchforge-pr14-uplift" > "${${{ runner.temp }}_TEMP}/pr14-original.json"
-          rf uplift verify --bundle "${${{ runner.temp }}_TEMP}/researchforge-pr14-uplift" > "${${{ runner.temp }}_TEMP}/pr14-replay.json"
-          rf uplift report --bundle "${${{ runner.temp }}_TEMP}/researchforge-pr14-uplift" --format md > "${${{ runner.temp }}_TEMP}/pr14-replay.md"
-          python -c 'import json,os,pathlib; p=pathlib.Path(os.environ["${{ runner.temp }}_TEMP"])/"pr14-replay.json"; r=json.loads(p.read_text()); assert r["provenance_class"]=="MECHANICAL_FIXTURE" and r["task_count"]==8 and len(r["comparisons"])==3 and not r["population_uplift_established"]'
+          python -m researchforge.uplift_fixture_demo --output "$RUNNER_TEMP/researchforge-pr14-uplift" > "$RUNNER_TEMP/pr14-original.json"
+          rf uplift verify --bundle "$RUNNER_TEMP/researchforge-pr14-uplift" > "$RUNNER_TEMP/pr14-replay.json"
+          rf uplift report --bundle "$RUNNER_TEMP/researchforge-pr14-uplift" --format md > "$RUNNER_TEMP/pr14-replay.md"
+          python -c 'import json,os,pathlib; p=pathlib.Path(os.environ["RUNNER_TEMP"])/"pr14-replay.json"; r=json.loads(p.read_text()); assert r["provenance_class"]=="MECHANICAL_FIXTURE" and r["task_count"]==8 and len(r["comparisons"])==3 and not r["population_uplift_established"]'
       - name: Publish PR14 raw task logs, pinned plan, ablation and replay evidence
         uses: actions/upload-artifact@v4
         with:
