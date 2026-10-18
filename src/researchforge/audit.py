@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 import typer
 from pydantic import Field, ValidationError, model_validator
@@ -262,7 +262,10 @@ def _literature_claim(
         )
     return _result(
         claim, "OBSERVED", used=sorted(set(matches)),
-        note="Source metadata observation only; not claim truth, peer review or global discoverability",
+        note=(
+            "Source metadata observation only; not claim truth, peer review "
+            "or global discoverability"
+        ),
     )
 
 
@@ -334,11 +337,11 @@ audit_commands = typer.Typer(help="Offline mechanical claim-to-evidence auditing
 
 @audit_commands.command("claims")
 def audit_claims_cli(
-    input_file: Path = typer.Option(..., "--input"),
-    campaign: Path | None = typer.Option(None, "--campaign"),
-    literature_store: Path | None = typer.Option(None, "--literature-store"),
-    report_format: str = typer.Option("json", "--format"),
-    output: Path | None = typer.Option(None, "--output"),
+    input_file: Annotated[Path, typer.Option("--input")],
+    campaign: Annotated[Path | None, typer.Option("--campaign")] = None,
+    literature_store: Annotated[Path | None, typer.Option("--literature-store")] = None,
+    report_format: Annotated[str, typer.Option("--format")] = "json",
+    output: Annotated[Path | None, typer.Option("--output")] = None,
 ) -> None:
     """Inspect supplied explicit claims; never execute evaluators or contact providers."""
     try:

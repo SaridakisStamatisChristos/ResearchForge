@@ -11,7 +11,6 @@ import typer
 from pydantic import BaseModel, ValidationError
 
 from researchforge import __version__
-from researchforge.audit import audit_commands
 from researchforge.application.campaigns import CampaignService, FrozenStateError, ManifestError
 from researchforge.application.final import FinalService
 from researchforge.application.qualification import HypothesisSpec, QualificationService
@@ -22,6 +21,7 @@ from researchforge.application.runner import (
     _pairs_unique,
     _reject_constant,
 )
+from researchforge.audit import audit_commands
 from researchforge.demo import DemoError, run_demo
 from researchforge.domain.envelope import ApiError, ResponseEnvelope
 from researchforge.domain.models import (

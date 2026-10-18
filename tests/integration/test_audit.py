@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -17,9 +18,8 @@ from researchforge.audit import (
 from researchforge.cli import app
 from researchforge.demo import run_demo
 from researchforge.domain.serialization import canonical_json, digest_bytes
-from researchforge.literature import RetrievalBatch, LiteratureRecord, RetrievalPage
+from researchforge.literature import LiteratureRecord, RetrievalBatch, RetrievalPage
 from researchforge.literature_archive import store_snapshot
-from datetime import UTC, datetime
 
 
 def _batch(items: list[dict[str, object]]) -> ClaimBatch:
@@ -48,11 +48,15 @@ def test_frozen_final_and_selection_events(tmp_path: Path) -> None:
         event for event in reversed(events)
         if event.event_type == "QUALIFICATION_DECIDED" and event.subject_id == "good"
     )
-    links = lambda sha: [{"source": "campaign_event", "sha256": sha}]
+    def links(sha: str) -> list[dict[str, str]]:
+        return [{"source": "campaign_event", "sha256": sha}]
     batch = _batch([
         _claim("supported", "final_status", "FINAL_SUPPORTED", links(final.event_sha256)),
         _claim("contradicted", "final_status", "FINAL_NOT_SUPPORTED", links(final.event_sha256)),
-        _claim("selection", "qualification_status", "QUALIFIED", links(qualified.event_sha256), "good"),
+        _claim(
+            "selection", "qualification_status", "QUALIFIED",
+            links(qualified.event_sha256), "good"
+        ),
         _claim("missing", "final_status", "FINAL_SUPPORTED", []),
         _claim("foreign", "final_status", "FINAL_SUPPORTED", links("f" * 64)),
     ])
@@ -111,7 +115,8 @@ def test_metadata_observed_never_becomes_scientific_support(tmp_path: Path) -> N
     result = audit_claims(assertions, literature_store=tmp_path / "archives")
     assert [item["status"] for item in result["claims"]] == ["OBSERVED", "INCONCLUSIVE"]
     (tmp_path / "archives" / f"{archive}.json").write_bytes(b"tampered")
-    assert audit_claims(assertions, literature_store=tmp_path / "archives")["claims"][0]["status"] == "UNVERIFIED"
+    corrupt = audit_claims(assertions, literature_store=tmp_path / "archives")
+    assert corrupt["claims"][0]["status"] == "UNVERIFIED"
 
 
 def test_bad_and_missing_claims_fail_closed(tmp_path: Path) -> None:
