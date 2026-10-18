@@ -1,42 +1,41 @@
-# Implementation phases
+# ResearchForge implementation roadmap and current state
 
-PR01 typed contracts, CI, schemas and CLI; PR02 append-only ledger/CAS; PR03 frozen
-manifest; PR04 trusted-local Git runner; PR05 hypothesis/qualification; PR06 statistical
-and untouched final gate; PR07 offline real-subprocess demonstration and portable skill.
+This is the implementation ledger for the staged ResearchForge architecture
+(RF-ARCH-001). The entries below describe merged source modules, **not** an
+external performance or scientific acceptance claim.
 
-The MVP acceptance gate was implemented in PR07. Follow-on roadmap:
-PR08 LiteratureForge source adapters; PR09 ResearchAuditor; PR10 independent
-portable research skills; PR11 HypothesisForge falsifiable drafts, opt-in model
-proposals and explicit human approval; PR12 PaperForge evidence-only exports.
+| Milestone | Implemented scope | Evidence / guide |
+| --- | --- | --- |
+| PR01–PR03 | Domain contracts, CLI, schemas, event ledger/CAS and frozen campaign inputs | [Contracts](CONTRACTS.md) |
+| PR04–PR07 | Trusted-local evaluator, qualification, one-shot final, statistics, offline demonstration and experiment skill | [MVP acceptance](MVP_ACCEPTANCE.md) |
+| PR08 | Opt-in Crossref/OpenAlex metadata retrieval and stored snapshots | [README literature section](../README.md#pr08--literatureforge-v01) |
+| PR09–PR10 | Claim/evidence auditor and additional portable research skills | [Audit](RESEARCH_AUDIT.md), [skills](PORTABLE_SKILLS.md) |
+| PR11 | HypothesisForge structured drafts and explicit human approval | [HypothesisForge](HYPOTHESIS_FORGE.md) |
+| PR12 | PaperForge offline evidence-labeled draft export | [PaperForge](PAPERFORGE.md) |
+| PR13 | Deterministic external NetworkX case study and independently replayable raw process evidence | [Case studies](CASE_STUDIES.md) |
+| PR14 | Pinned paired-agent control/full/ablation runner with a 32-subprocess mechanical fixture | [Agent uplift](AGENT_UPLIFT.md) |
 
-Do not start PR08 literature work until PR07 proves the complete MVP.
+**PR14 is merged on `main`**; it is not awaiting implementation on a
+separate branch. The bundled deterministic agent fixture is deliberately
+labeled `MECHANICAL_FIXTURE`, and does **not** show actual LLM uplift.
+The external NetworkX exercise verifies paired case-study integration, not
+a statistically supported speed or correctness advantage in the wild.
 
-## Phase C progress
+## Next gates, not completed deliverables
 
-PR11 HypothesisForge introduces reviewed human/model hypothesis proposals with
-explicit admission and bounded attempts. PR12 PaperForge introduces offline,
-evidence-closed manuscript draft export with tables from independently verified
-final evaluator records and references only from validated literature archives.
-PaperForge is not a novelty judge, peer reviewer or publication-ready generator.
-PR13 case studies and PR14 agent uplift remain separately gated.
+1. **Scientific external validity:** Execute independently sampled, frozen
+   model-agent tasks with controlled budgets/identity and independent scoring,
+   then report uncertainty and negative results. The existing PR14 fixture
+   is a harness test, not this study.
+2. **Reproducibility beyond CI:** Independently exercise fresh-clone setup,
+   packaging, optional integrations and archival replay across environments.
+   CI is necessary, not a guarantee of platform-wide reproducibility.
+3. **Distribution/legal choice:** Have the maintainer choose a repository
+   license (if distribution is intended), review dependency notices and
+   verify publication/release artifacts before any distribution claim.
+4. **Security boundary:** If untrusted experiment execution becomes a goal,
+   separately design and validate isolation. The trusted local runner must
+   not be marketed as a sandbox.
 
-PR13 now includes a reproducible external, independent project case study using
-pinned NetworkX 3.6.1 Dijkstra versus Bellman–Ford on 12 deterministic graphs,
-independently verified by ResearchForge and CI-archived with complete raw logs.
-The existing real-subprocess SAT/graph toy suite remains as negative controls;
-no user-owned algorithm or repo is used as the experimental target. These
-small executions establish integration and local correctness, not broad
-performance superiority or publication readiness.
-
-
-### PR14 — agent-uplift evaluation harness
-
-Implemented on a separate PR14 branch: immutable fixed-task plan contract, an
-opt-in trusted-local shell-free paired agent runner with SHA-pinned source,
-control/full/leave-one-out ablation exposure, bounded execution, independent
-exact-answer scoring, logged raw outputs, deterministic descriptive intervals
-and offline receipt verification. Reference mechanical fixture exercises
-32 actual subprocesses in CI but **is not empirical LLM agent uplift**.
-A genuine externally sampled and independently scored model-agent campaign,
-with controlled provider identity/tokens, remains necessary before any
-agent-performance superiority claim. See docs/AGENT_UPLIFT.md.
+These are tracked as unmet gates rather than promised dates or completed
+features. See [architecture](ARCHITECTURE.md) for implemented module boundaries.
