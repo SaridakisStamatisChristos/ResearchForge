@@ -110,3 +110,44 @@ limits. Repeat qualification attempts count as **selection exposure** and cannot
 presented as an untouched test. An `INCONCLUSIVE` decision can be superseded, never
 overwritten, when subsequently obtained evidence changes its basis. No final data
 is accessed at PR05. **This runner does not isolate untrusted code.**
+
+## PR06: preregistered one-shot final test, replay and statistical summaries
+
+After qualifying a candidate, nominate it **before** any final evaluation:
+
+```bash
+rf final nominate --campaign /tmp/my-rf-campaign --candidate candidate-a
+rf final inspect --campaign /tmp/my-rf-campaign
+rf final evaluate --campaign /tmp/my-rf-campaign --approve-trusted-local
+rf verify --campaign /tmp/my-rf-campaign
+rf report --campaign /tmp/my-rf-campaign --format md --output /tmp/report.md
+```
+
+The nomination locks candidate OID, baseline, final split digest, qualification
+evidence, metric direction and threshold. The first final execution start consumes
+the one-shot right, even if an interrupted process leaves `FINAL_UNKNOWN`.
+Only the authorized final service may launch final evaluators. Development and
+qualification evaluation and new candidate/hypothesis registration are refused
+after nomination. Final runs execute a baseline and nominated candidate on the
+final split using the existing trusted-local runner; their complete raw output
+digests and terminal events remain in the evidence ledger. No Git merge occurs.
+
+The resulting `FINAL_SUPPORTED` means only that the declared aggregate metric
+threshold was met on this frozen final set. It **does not** establish statistical
+or population-level superiority. The evaluator v1 result contains only an
+aggregate, so no independent paired case-level confidence interval can be
+inferred from the aggregate.
+
+When case-level measurements **are separately available**, use the deterministic
+paired-bootstrap interface:
+
+```bash
+rf stats paired --file observations.json --seed 42 --resamples 2000
+```
+
+`observations.json` contains `baseline` and `candidate` dictionaries keyed
+by identical case IDs plus `direction` (`min` or `max`). The interval is an
+exploratory percentile bootstrap requiring suitable sampling assumptions; it
+does not automatically change the frozen final comparison policy. All reports
+replay evidence offline and can be written only to a *new* file. No automatic
+network, cloud or model execution is involved.

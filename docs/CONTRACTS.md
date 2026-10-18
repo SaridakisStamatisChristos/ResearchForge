@@ -62,3 +62,21 @@ both `minimum_absolute_improvement` and the `allow_equal` rule. A decisive
 failure produces `REJECTED`; missing verified evidence produces `INCONCLUSIVE`.
 Subsequent evidence appends a new decision with a supersession link. Decisions
 never grant Git merge authority and do not constitute independent final evidence.
+
+## PR06 final-state contract
+
+`FINAL_PLAN_FROZEN` permanently closes candidate selection; its immutable
+payload binds an already-committed `QUALIFICATION_DECIDED` event, candidate and
+baseline exact commit/tree, frozen final split digest, policy and threshold.
+`FINAL_EVALUATION_STARTED` is a one-shot consumption event. It precedes both
+final `ATTEMPT_STARTED` events (baseline and nominated candidate) and forbids
+retry after interruption or an unknown outcome. `FINAL_EVALUATED` contains
+`FINAL_SUPPORTED`, `FINAL_NOT_SUPPORTED`, or `FINAL_INCONCLUSIVE` and
+terminal event references; `rf verify` rebuilds the result from independently
+reparsed CAS stdout and validates the saved conclusion. When process evidence is
+incomplete, return `FINAL_UNKNOWN` with no automatic second attempt.
+
+`paired_comparison` requires exact matching nonempty case ID maps, finite values,
+a declared metric direction and a frozen random seed. It yields a seeded paired
+percentile-bootstrap interval, clearly marked exploratory. The v1 aggregate-only
+final evaluator has no case-level samples and therefore no manufactured CI.

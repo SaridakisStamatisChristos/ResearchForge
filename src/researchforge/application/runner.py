@@ -256,10 +256,36 @@ class RunnerService:
         with self._lease():
             return self._run_locked(role=role, candidate_id=candidate_id)
 
-    def _run_locked(self, *, role: str, candidate_id: str | None = None) -> dict[str, Any]:
-        if role not in ("dev", "qualification"):
-            raise ExecutionRefused("Final split is sealed until PR06")
+    def _run_locked(
+        self, *, role: str, candidate_id: str | None = None, allow_final: bool = False
+    ) -> dict[str, Any]:
+        if role not in ("dev", "qualification", "final"):
+            raise ExecutionRefused("Unknown evaluation split role")
+        if role == "final" and not allow_final:
+            raise ExecutionRefused("Final split requires the frozen final plan")
         manifest, snapshot, evaluator_root, repository, ledger = self._ready()
+        events = ledger.read_events(snapshot.campaign_id)
+        final_plans = [event for event in events if event.event_type == "FINAL_PLAN_FROZEN"]
+        if role != "final" and final_plans:
+            raise ExecutionRefused("Selection is permanently closed after final nomination")
+        if role == "final":
+            plans = [json.loads(ledger.cas.get(event.payload_ref)) for event in final_plans]
+            openings = [e for e in events if e.event_type == "FINAL_EVALUATION_STARTED"]
+            completions = [e for e in events if e.event_type == "FINAL_EVALUATED"]
+            prior_final = [
+                json.loads(ledger.cas.get(e.payload_ref))
+                for e in events
+                if e.event_type == "ATTEMPT_STARTED"
+                and json.loads(ledger.cas.get(e.payload_ref)).get("role") == "final"
+            ]
+            requested = candidate_id if candidate_id is not None else "baseline"
+            if (
+                len(plans) != 1 or len(openings) != 1 or completions
+                or len(prior_final) >= 2
+                or requested != plans[0]["arms"][len(prior_final)]
+            ):
+                raise ExecutionRefused("Final attempt must follow the one-shot frozen plan")
+
         candidate_key = candidate_id if candidate_id is not None else "baseline"
         commit, tree = snapshot.repository_commit, snapshot.repository_tree
         if candidate_id is not None:
