@@ -215,25 +215,31 @@ def run_cases(plan_file: Path, output: Path, *, approved: bool) -> dict[str, Any
             _write_new(output, base + ".stderr", stderr)
             verdict, reason = (
                 oracle(plan.kind, cases[item.case_id], stdout, code)
-                if failure is None else ("UNKNOWN", failure)
+                if failure is None
+                else ("UNKNOWN", failure)
             )
-            rows.append({
-                "case_id": item.case_id,
-                "tool": tool.name,
-                "argv": argv,
-                "exit_code": code,
-                "failure": failure,
-                "runtime_seconds": seconds,
-                "stdout_path": base + ".stdout",
-                "stdout_sha256": digest_bytes(stdout),
-                "stderr_path": base + ".stderr",
-                "stderr_sha256": digest_bytes(stderr),
-                "correctness": verdict,
-                "reason": reason,
-            })
-    body = {"schema_version": "1.0", "provenance": "EXECUTED_TRUSTED_LOCAL",
-            "plan_sha256": digest_bytes(_safe_file(output, "plan.json")),
-            "rows": rows}
+            rows.append(
+                {
+                    "case_id": item.case_id,
+                    "tool": tool.name,
+                    "argv": argv,
+                    "exit_code": code,
+                    "failure": failure,
+                    "runtime_seconds": seconds,
+                    "stdout_path": base + ".stdout",
+                    "stdout_sha256": digest_bytes(stdout),
+                    "stderr_path": base + ".stderr",
+                    "stderr_sha256": digest_bytes(stderr),
+                    "correctness": verdict,
+                    "reason": reason,
+                }
+            )
+    body = {
+        "schema_version": "1.0",
+        "provenance": "EXECUTED_TRUSTED_LOCAL",
+        "plan_sha256": digest_bytes(_safe_file(output, "plan.json")),
+        "rows": rows,
+    }
     stored = canonical_json(body)
     _write_new(output, "bundle.json", stored)
     _write_new(output, "bundle.sha256", (digest_bytes(stored) + "\n").encode())
