@@ -323,6 +323,48 @@ class RunnerService:
         if self._open_attempts(ledger, snapshot.campaign_id):
             raise ExecutionRefused("Unresolved attempt: adjudicate UNKNOWN; no auto replay")
         previous = ledger.read_events(snapshot.campaign_id)
+        if candidate_id is not None and role != "final":
+            # A HypothesisForge attempt cap covers all candidates of the same hypothesis,
+            # including failed, timed-out and UNKNOWN starts, never only successes.
+            hypothesis_id = candidates[candidate_id]["hypothesis_id"]
+            approvals = [
+                event
+                for event in previous
+                if event.event_type == "HYPOTHESIS_FORGE_APPROVED"
+                and event.subject_id == hypothesis_id
+            ]
+            if approvals:
+                if len(approvals) != 1:
+                    raise RunnerIntegrityError("Duplicate HypothesisForge approvals")
+                from researchforge.hypothesis_forge import HypothesisDraft
+
+                try:
+                    payload = json.loads(ledger.cas.get(approvals[0].payload_ref))
+                    draft = HypothesisDraft.model_validate(payload["draft"])
+                    if (
+                        payload["draft_sha256"] != draft.draft_sha256
+                        or draft.design.hypothesis_id != hypothesis_id
+                        or payload["approval"] != "EXPLICIT_HUMAN_CLI"
+                    ):
+                        raise ValueError("HypothesisForge approval does not match draft")
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise RunnerIntegrityError("Invalid HypothesisForge approval") from exc
+                siblings = {
+                    name
+                    for name, candidate in candidates.items()
+                    if candidate["hypothesis_id"] == hypothesis_id
+                }
+                consumed = sum(
+                    1
+                    for event in previous
+                    if event.event_type == "ATTEMPT_STARTED"
+                    and json.loads(ledger.cas.get(event.payload_ref)).get("candidate_id")
+                    in siblings
+                    and json.loads(ledger.cas.get(event.payload_ref)).get("role")
+                    in ("dev", "qualification")
+                )
+                if consumed >= draft.design.max_attempts:
+                    raise ExecutionRefused("Hypothesis attempt budget exhausted")
         attempts = sum(event.event_type == "ATTEMPT_STARTED" for event in previous)
         if attempts >= manifest.budget.max_attempts:
             raise ExecutionRefused("Campaign evaluation-attempt budget exhausted")
