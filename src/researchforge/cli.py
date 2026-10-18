@@ -675,9 +675,7 @@ def paper_draft(
     """Generate an offline manuscript with explicit unsupported-evidence annotations."""
     try:
         spec = read_paper_spec(input_file)
-        document = build_paper(
-            spec, campaign=campaign_path, literature_store=literature_store
-        )
+        document = build_paper(spec, campaign=campaign_path, literature_store=literature_store)
         if paper_format == "md":
             rendered = render_markdown(document)
         elif paper_format == "json":
