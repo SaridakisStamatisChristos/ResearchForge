@@ -264,3 +264,16 @@ already archived source-specific metadata. Unsupported claims and incomplete
 citations remain explicitly labeled; no invented bibliography or scientific
 superiority claims. See `docs/PAPERFORGE.md` for the complete evidence and
 CLI contract.
+
+## PR13 — executable case studies and raw evidence
+
+`python -m researchforge.case_demo --output /tmp/rf-case-studies` runs real,
+fully offline SAT and graph reference subprocesses, with one deliberately
+incorrect comparator in each domain. `rf cases run --plan PLAN --output NEW_DIR
+--approve-trusted-local` accepts pinned trusted-local SatSolv/Kissat-style
+solver binaries or normalized graph tools. `rf cases verify --bundle DIR`
+independently checks SHA-256 raw logs and correctness of SAT assignments,
+bounded small-instance UNSAT claims, and graph distances. External solver
+benchmarks are **not** claimed by the toy demo; large UNSAT needs independent
+proof checking. The CI job publishes bounded raw-log artifacts. See
+`docs/CASE_STUDIES.md`.
