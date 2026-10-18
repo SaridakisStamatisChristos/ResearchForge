@@ -448,7 +448,7 @@ def verify_bundle(folder: Path) -> dict[str, Any]:
                 "UNSAT above the exhaustive-check limit needs a separate independent proof checker",
                 "Incorrect or unverified outputs receive no certified solved credit",
                 "Local execution is no security sandbox; administrators can alter local evidence",
-                "No SatSolv/Kissat or ADES result is claimed without running pinned binaries",
+                "No external algorithm superiority claim without representative independent runs",
             ],
         }
     except (UnicodeError, OSError, ValueError, ValidationError) as exc:

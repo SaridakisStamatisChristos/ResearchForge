@@ -20,8 +20,10 @@ final evaluator records and references only from validated literature archives.
 PaperForge is not a novelty judge, peer reviewer or publication-ready generator.
 PR13 case studies and PR14 agent uplift remain separately gated.
 
-PR13 implements trusted-local paired case-study execution and independent
-small SAT/shortest-path correctness oracles, with real-process toy fixtures
-and CI-published raw logs. External SatSolv/Kissat and ADES benchmark claims
-remain unverified until pinned binaries, representative benchmark corpora,
-and independent large-instance UNSAT proof checking are supplied.
+PR13 now includes a reproducible external, independent project case study using
+pinned NetworkX 3.6.1 Dijkstra versus Bellman–Ford on 12 deterministic graphs,
+independently verified by ResearchForge and CI-archived with complete raw logs.
+The existing real-subprocess SAT/graph toy suite remains as negative controls;
+no user-owned algorithm or repo is used as the experimental target. These
+small executions establish integration and local correctness, not broad
+performance superiority or publication readiness.

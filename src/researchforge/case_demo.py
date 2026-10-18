@@ -1,7 +1,7 @@
 """Executed, fully offline *toy* SAT and shortest-path case-study smoke run.
 
-This exercises real Python subprocesses with actual input/output bytes. It is NOT
-a SatSolv/Kissat comparison or an ADES external benchmark.
+This exercises real Python subprocesses with actual input/output bytes. It is
+internal negative-control regression evidence, not a third-party case study.
 """
 
 from __future__ import annotations
