@@ -376,7 +376,10 @@ class QualificationService:
             hypotheses, _ = self.registry(ledger, frozen.campaign_id)
             if spec.parent_id is not None and spec.parent_id not in hypotheses:
                 raise ExecutionRefused("Parent hypothesis does not exist")
-            if spec.hypothesis_id not in hypotheses and len(hypotheses) >= manifest.budget.max_hypotheses:
+            if (
+                spec.hypothesis_id not in hypotheses
+                and len(hypotheses) >= manifest.budget.max_hypotheses
+            ):
                 raise ExecutionRefused("Hypothesis budget exhausted")
             if spec.hypothesis_id in hypotheses and hypotheses[spec.hypothesis_id] != spec:
                 raise ExecutionRefused("Hypothesis ID cannot be reused with other contents")
