@@ -60,9 +60,7 @@ def test_score_tampering_and_raw_output_tampering_detected(tmp_path: Path) -> No
     # independent replay must still reject the fabricated decision.
     target.write_text('{"answer": "ODD"}\n', encoding="utf-8")
     receipt = json.loads((output / "receipt.json").read_text())
-    row = next(
-        r for r in receipt["rows"] if r["task_id"] == "parity1" and r["arm"] == "full"
-    )
+    row = next(r for r in receipt["rows"] if r["task_id"] == "parity1" and r["arm"] == "full")
     target.write_text('{"answer": "ODD"}\n', encoding="utf-8")
     row["status"] = "FAIL"
     row["answer_sha256"] = digest_bytes(target.read_bytes())
