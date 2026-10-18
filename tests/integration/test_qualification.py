@@ -257,3 +257,20 @@ def test_cli_add_and_register(
     decision = cli.invoke(app, ["qualify", "--campaign", c, "--candidate", "good"])
     assert decision.exit_code == 0, decision.output
     assert json.loads(decision.output)["data"]["status"] == "INCONCLUSIVE"
+
+
+def test_forged_qualification_verdict_is_not_reused(
+    research: tuple[QualificationService, RunnerService, Path, dict[str, str]]
+) -> None:
+    service, runner, _, commits = research
+    add(service, "h1")
+    service.register(candidate_id="good", hypothesis_id="h1", commit=commits["good"])
+    ledger = EventLedger(runner.campaign.root)
+    seq = ledger.verify("selection-001")["event_count"]
+    assert isinstance(seq, int)
+    ledger.append_event(
+        "selection-001", seq, "QUALIFICATION_DECIDED", "good",
+        {"candidate_id": "good", "status": "QUALIFIED", "evidence_events": {}},
+    )
+    with pytest.raises(RunnerIntegrityError, match="contradicts deterministic replay"):
+        service.qualify("good")
