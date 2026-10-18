@@ -3,6 +3,7 @@
 A real subprocess creates each log. Replay validates hashes and correctness,
 but a locally edited bundle is not externally trusted execution attestation.
 """
+
 from __future__ import annotations
 
 import json
@@ -49,8 +50,10 @@ class ToolSpec(StrictModel):
             not Path(self.argv[0]).is_absolute()
             or self.argv.count("{input}") != 1
             or any(
-                not word or "\x00" in word or
-                re.search(r"\{[^{}]*\}", word) and word not in {"{input}", "{seed}"}
+                not word
+                or "\x00" in word
+                or re.search(r"\{[^{}]*\}", word)
+                and word not in {"{input}", "{seed}"}
                 for word in self.argv
             )
         ):
@@ -200,7 +203,8 @@ def run_cases(plan_file: Path, output: Path, *, approved: bool) -> dict[str, Any
                 timeout=plan.cutoff_seconds,
                 max_output=plan.max_output_bytes,
                 env={
-                    k: v for k, v in os.environ.items()
+                    k: v
+                    for k, v in os.environ.items()
                     if k in {"PATH", "LANG", "LC_ALL", "SYSTEMROOT", "WINDIR"}
                 },
             )
@@ -293,7 +297,9 @@ def verify_bundle(folder: Path) -> dict[str, Any]:
                 raise CaseBundleError("Bundled instance conflicts with frozen plan")
             category = _category(plan.kind, data)
             summary: dict[str, Any] = {
-                "case_id": item.case_id, "family": item.family, "category": category,
+                "case_id": item.case_id,
+                "family": item.family,
+                "category": category,
                 "instance_sha256": item.input_sha256,
             }
             for label, tool in (("left", plan.left), ("right", plan.right)):
@@ -308,10 +314,9 @@ def verify_bundle(folder: Path) -> dict[str, Any]:
                     raise CaseBundleError("Log paths are not tied to exact pair")
                 stdout = _safe_file(folder, row["stdout_path"], maximum=MAX_OUTPUT)
                 stderr = _safe_file(folder, row["stderr_path"], maximum=MAX_OUTPUT)
-                if (
-                    digest_bytes(stdout) != row.get("stdout_sha256")
-                    or digest_bytes(stderr) != row.get("stderr_sha256")
-                ):
+                if digest_bytes(stdout) != row.get("stdout_sha256") or digest_bytes(
+                    stderr
+                ) != row.get("stderr_sha256"):
                     raise CaseBundleError("Raw log digest mismatch")
                 code = row.get("exit_code")
                 if code is not None and (type(code) is not int or not -255 <= code <= 255):
@@ -321,7 +326,8 @@ def verify_bundle(folder: Path) -> dict[str, Any]:
                     raise CaseBundleError("Invalid process termination outcome")
                 verified_status, reason = (
                     oracle(plan.kind, data, stdout, code)
-                    if failure is None else ("UNKNOWN", failure)
+                    if failure is None
+                    else ("UNKNOWN", failure)
                 )
                 if (row.get("correctness"), row.get("reason")) != (verified_status, reason):
                     raise CaseBundleError("Recorded verdict contradicts independent oracle")
@@ -358,10 +364,14 @@ def verify_bundle(folder: Path) -> dict[str, Any]:
             "bundle_sha256": supplied_digest,
             "plan_sha256": digest_bytes(plan_bytes),
             "tool_versions": {
-                plan.left.name: {"binary_sha256": plan.left.binary_sha256,
-                                 "version_or_commit": plan.left.version_or_commit},
-                plan.right.name: {"binary_sha256": plan.right.binary_sha256,
-                                  "version_or_commit": plan.right.version_or_commit},
+                plan.left.name: {
+                    "binary_sha256": plan.left.binary_sha256,
+                    "version_or_commit": plan.left.version_or_commit,
+                },
+                plan.right.name: {
+                    "binary_sha256": plan.right.binary_sha256,
+                    "version_or_commit": plan.right.version_or_commit,
+                },
             },
             "case_count": len(cases),
             "certified_solved": {
