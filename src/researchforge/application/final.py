@@ -53,6 +53,46 @@ class FinalService:
         if not plans:
             return None
         event, plan = plans[0]
+        manifest, _, _ = self.runner.campaign._manifest()
+        _, candidates = self.selection.registry(ledger, campaign_id)
+        identity = candidates.get(str(plan.get("candidate_id")))
+        recorded = self._entries(ledger, campaign_id)
+        selections = [
+            candidate_event
+            for candidate_event, _ in recorded
+            if candidate_event.event_type == "QUALIFICATION_DECIDED"
+            and candidate_event.subject_id == plan.get("candidate_id")
+            and candidate_event.event_sha256 == plan.get("selection_event_sha256")
+        ]
+        forbidden = {"HYPOTHESIS_PROPOSED", "CANDIDATE_REGISTERED", "QUALIFICATION_DECIDED"}
+        for following, payload in recorded:
+            if following.sequence > event.sequence and (
+                following.event_type in forbidden
+                or (
+                    following.event_type == "ATTEMPT_STARTED"
+                    and payload.get("role") != "final"
+                )
+            ):
+                raise RunnerIntegrityError("Candidate search modified after final nomination")
+        if (
+            identity is None
+            or plan.get("candidate_commit") != identity["commit"]
+            or plan.get("candidate_tree") != identity["tree"]
+            or plan.get("metric") != manifest.metric.name
+            or plan.get("direction") != manifest.metric.direction
+            or plan.get("threshold") != manifest.qualification_policy.minimum_absolute_improvement
+            or plan.get("allow_equal") != manifest.qualification_policy.allow_equal
+            or len(selections) != 1
+            or selections[0].sequence >= event.sequence
+            or set(plan) != {
+                "candidate_id", "candidate_commit", "candidate_tree",
+                "baseline_commit", "baseline_tree", "manifest_sha256",
+                "policy_sha256", "split_sha256", "selection_event_sha256",
+                "qualification_attempt_exposure", "metric", "direction",
+                "threshold", "allow_equal", "method", "arms",
+            }
+        ):
+            raise RunnerIntegrityError("Final plan changes registered identities or policy")
         if (
             event.subject_id != plan.get("candidate_id")
             or plan.get("manifest_sha256") != frozen.manifest_sha256
@@ -81,6 +121,12 @@ class FinalService:
             _, candidates = self.selection.registry(ledger, frozen.campaign_id)
             if candidate_id not in candidates:
                 raise ExecutionRefused("Candidate not registered")
+            used = sum(
+                event.event_type == "ATTEMPT_STARTED"
+                for event in ledger.read_events(frozen.campaign_id)
+            )
+            if used + 2 > manifest.budget.max_attempts:
+                raise ExecutionRefused("Insufficient budget to reserve both final arms")
             checked = self.selection.decide(candidate_id)
             if checked["status"] != "QUALIFIED":
                 raise ExecutionRefused("Only a prequalified candidate can be nominated")
